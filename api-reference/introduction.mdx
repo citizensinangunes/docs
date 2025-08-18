@@ -1,33 +1,484 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: "API Overview"
+description: "Complete guide to Citizen's REST API for infrastructure management automation"
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
+## Introduction
 
-## Welcome
+The Citizen API provides programmatic access to all platform features, enabling you to automate application deployment, management, and monitoring through a comprehensive REST interface. Built with modern best practices, the API supports JSON request/response formats, JWT authentication, and real-time WebSocket connections.
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
-
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
+<CardGroup cols={2}>
+<Card title="Quick Start" icon="rocket" href="/api-reference/authentication">
+  Get your API token and make your first request in minutes
 </Card>
+
+<Card title="Applications API" icon="server" href="/api-reference/apps/list">
+  Manage application lifecycle with full CRUD operations
+</Card>
+
+<Card title="Deployments API" icon="upload" href="/api-reference/deployments/list">
+  Control deployments, monitor progress, and access logs
+</Card>
+
+<Card title="System API" icon="gear" href="/api-reference/system/health">
+  Monitor system health, metrics, and webhook management
+</Card>
+</CardGroup>
+
+## Base URL
+
+All API requests should be made to your Citizen installation's base URL:
+
+<CodeGroup>
+```bash Production
+https://yourdomain.com/api/v1
+```
+
+```bash Development
+http://localhost:3000/api/v1
+```
+</CodeGroup>
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+Citizen API uses JWT (JSON Web Token) based authentication for secure access to all endpoints.
+
+<Steps>
+<Step title="Obtain JWT Token">
+  Authenticate with your Citizen credentials to receive a JWT token.
+  
+  ```bash
+  curl -X POST 'https://yourdomain.com/api/v1/auth/login' \
+    -H 'Content-Type: application/json' \
+    -d '{
+      "username": "your_username",
+      "password": "your_password"
+    }'
+  ```
+</Step>
+
+<Step title="Include Token in Requests">
+  Add the JWT token to the Authorization header for all API requests.
+  
+  ```bash
+  curl -X GET 'https://yourdomain.com/api/v1/apps' \
+    -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+  ```
+</Step>
+
+<Step title="Handle Token Expiration">
+  JWT tokens expire after 24 hours. Refresh or re-authenticate when you receive a 401 response.
+  
+  ```json
+  {
+    "error": "Token expired",
+    "code": "INVALID_TOKEN",
+    "message": "JWT token has expired, please re-authenticate"
+  }
+  ```
+</Step>
+</Steps>
+
+<Warning>
+**Security**: Never share your JWT tokens or embed them in client-side code. Store tokens securely and use environment variables for server-side applications.
+</Warning>
+
+## Request Format
+
+The Citizen API accepts JSON-formatted request bodies for POST, PUT, and PATCH operations.
+
+### Headers
+
+<ParamField header="Content-Type" type="string" required>
+Set to `application/json` for all requests with a body
+</ParamField>
+
+<ParamField header="Authorization" type="string" required>
+Bearer token: `Bearer YOUR_JWT_TOKEN`
+</ParamField>
+
+<ParamField header="User-Agent" type="string">
+Identify your application: `MyApp/1.0.0`
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST 'https://yourdomain.com/api/v1/apps' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+  -H 'User-Agent: MyApp/1.0.0' \
+  -d '{
+    "name": "my-application",
+    "deployment": {
+      "type": "docker",
+      "image": "nginx:alpine"
+    }
+  }'
+```
+
+## Response Format
+
+All API responses are returned in JSON format with consistent structure and HTTP status codes.
+
+### Success Response
 
 ```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
+{
+  "success": true,
+  "data": {
+    "id": "app_123",
+    "name": "my-application",
+    "status": "running",
+    "created_at": "2024-01-15T10:30:00Z"
+  },
+  "message": "Application created successfully"
+}
 ```
+
+### Error Response
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid application name",
+    "details": {
+      "field": "name",
+      "constraint": "Must be alphanumeric and 3-50 characters"
+    }
+  }
+}
+```
+
+### Response Fields
+
+<ResponseField name="success" type="boolean" required>
+Indicates whether the request was successful
+</ResponseField>
+
+<ResponseField name="data" type="object">
+Contains the requested data for successful responses
+</ResponseField>
+
+<ResponseField name="message" type="string">
+Human-readable message describing the result
+</ResponseField>
+
+<ResponseField name="error" type="object">
+Error details for failed requests
+</ResponseField>
+
+## HTTP Status Codes
+
+Citizen API uses standard HTTP status codes to indicate request outcomes:
+
+<AccordionGroup>
+<Accordion title="2xx Success">
+- **200 OK** - Request successful, data returned
+- **201 Created** - Resource created successfully
+- **202 Accepted** - Request accepted, processing in progress
+- **204 No Content** - Request successful, no data returned
+</Accordion>
+
+<Accordion title="4xx Client Errors">
+- **400 Bad Request** - Invalid request format or parameters
+- **401 Unauthorized** - Missing or invalid authentication
+- **403 Forbidden** - Valid authentication but insufficient permissions
+- **404 Not Found** - Requested resource does not exist
+- **409 Conflict** - Resource already exists or state conflict
+- **422 Unprocessable Entity** - Valid format but semantic errors
+- **429 Too Many Requests** - Rate limit exceeded
+</Accordion>
+
+<Accordion title="5xx Server Errors">
+- **500 Internal Server Error** - Unexpected server error
+- **502 Bad Gateway** - Upstream service unavailable
+- **503 Service Unavailable** - Service temporarily unavailable
+- **504 Gateway Timeout** - Upstream service timeout
+</Accordion>
+</AccordionGroup>
+
+## Rate Limiting
+
+API requests are rate limited to ensure fair usage and system stability.
+
+<Tabs>
+<Tab title="Default Limits">
+**Per User Limits:**
+- 1,000 requests per hour
+- 100 requests per minute
+- 10 requests per second
+
+**Per IP Limits:**
+- 5,000 requests per hour
+- 500 requests per minute
+</Tab>
+
+<Tab title="Rate Limit Headers">
+Every API response includes rate limiting information:
+
+```http
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 999
+X-RateLimit-Reset: 1641891600
+X-RateLimit-Window: 3600
+```
+
+<ResponseField name="X-RateLimit-Limit" type="integer">
+Maximum requests allowed in the current window
+</ResponseField>
+
+<ResponseField name="X-RateLimit-Remaining" type="integer">
+Number of requests remaining in the current window
+</ResponseField>
+
+<ResponseField name="X-RateLimit-Reset" type="integer">
+Unix timestamp when the rate limit window resets
+</ResponseField>
+</Tab>
+
+<Tab title="Rate Limit Exceeded">
+When rate limits are exceeded, the API returns a 429 status code:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Too many requests. Please try again later.",
+    "retry_after": 60
+  }
+}
+```
+
+**Best Practices:**
+- Monitor rate limit headers in responses
+- Implement exponential backoff for retries
+- Cache responses when possible
+- Use webhooks instead of polling for real-time updates
+</Tab>
+</Tabs>
+
+## Pagination
+
+API endpoints that return lists of resources use cursor-based pagination for optimal performance.
+
+### Pagination Parameters
+
+<ParamField query="limit" type="integer" default="25">
+Number of items to return (maximum 100)
+</ParamField>
+
+<ParamField query="cursor" type="string">
+Cursor for the next page of results
+</ParamField>
+
+### Pagination Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "id": "app_123",
+        "name": "my-app"
+      }
+    ],
+    "pagination": {
+      "has_more": true,
+      "next_cursor": "eyJpZCI6ImFwcF8xMjMifQ==",
+      "total_count": 150
+    }
+  }
+}
+```
+
+<ResponseField name="pagination.has_more" type="boolean">
+Whether more results are available
+</ResponseField>
+
+<ResponseField name="pagination.next_cursor" type="string">
+Cursor to fetch the next page of results
+</ResponseField>
+
+<ResponseField name="pagination.total_count" type="integer">
+Total number of items available (when countable)
+</ResponseField>
+
+## WebSocket API
+
+For real-time updates, Citizen provides WebSocket connections alongside the REST API.
+
+### Connection
+
+```javascript
+const ws = new WebSocket('wss://yourdomain.com/api/v1/ws?token=YOUR_JWT_TOKEN');
+
+ws.onopen = () => {
+  console.log('Connected to Citizen WebSocket');
+};
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log('Received:', data);
+};
+```
+
+### Event Types
+
+<AccordionGroup>
+<Accordion title="Application Events">
+- `app.created` - New application created
+- `app.updated` - Application configuration changed
+- `app.deleted` - Application removed
+- `app.status_changed` - Application status updated
+</Accordion>
+
+<Accordion title="Deployment Events">
+- `deployment.started` - Deployment initiated
+- `deployment.progress` - Build/deploy progress update
+- `deployment.completed` - Deployment finished successfully
+- `deployment.failed` - Deployment failed
+</Accordion>
+
+<Accordion title="System Events">
+- `system.maintenance` - Maintenance mode activated
+- `system.alert` - Critical system alert
+- `user.session_expired` - User session expired
+</Accordion>
+</AccordionGroup>
+
+## SDKs and Libraries
+
+Official and community SDKs are available for popular programming languages:
+
+<CardGroup cols={2}>
+<Card title="JavaScript/TypeScript" icon="js">
+  ```bash
+  npm install @citizen/api-client
+  ```
+</Card>
+
+<Card title="Python" icon="python">
+  ```bash
+  pip install citizen-api
+  ```
+</Card>
+
+<Card title="Go" icon="golang">
+  ```bash
+  go get github.com/citizenteam/go-client
+  ```
+</Card>
+
+<Card title="cURL Examples" icon="terminal">
+  Complete cURL examples for all endpoints
+</Card>
+</CardGroup>
+
+## Error Handling
+
+Implement robust error handling in your applications using Citizen API.
+
+### Common Error Patterns
+
+<CodeGroup>
+```javascript JavaScript
+async function createApp(appData) {
+  try {
+    const response = await fetch('/api/v1/apps', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(appData)
+    });
+    
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.error.message);
+    }
+    
+    return result.data;
+  } catch (error) {
+    console.error('Failed to create app:', error.message);
+    throw error;
+  }
+}
+```
+
+```python Python
+import requests
+from requests.exceptions import RequestException
+
+def create_app(app_data, token):
+    try:
+        response = requests.post(
+            'https://yourdomain.com/api/v1/apps',
+            headers={
+                'Authorization': f'Bearer {token}',
+                'Content-Type': 'application/json'
+            },
+            json=app_data,
+            timeout=30
+        )
+        
+        response.raise_for_status()
+        return response.json()['data']
+        
+    except requests.exceptions.HTTPError as e:
+        error_data = response.json()
+        raise Exception(f"API Error: {error_data['error']['message']}")
+    except RequestException as e:
+        raise Exception(f"Request failed: {str(e)}")
+```
+
+```go Go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "net/http"
+)
+
+type APIError struct {
+    Code    string `json:"code"`
+    Message string `json:"message"`
+}
+
+func createApp(appData map[string]interface{}, token string) error {
+    jsonData, _ := json.Marshal(appData)
+    
+    req, _ := http.NewRequest("POST", "https://yourdomain.com/api/v1/apps", 
+        bytes.NewBuffer(jsonData))
+    req.Header.Set("Authorization", "Bearer "+token)
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        return fmt.Errorf("request failed: %v", err)
+    }
+    defer resp.Body.Close()
+    
+    if resp.StatusCode != http.StatusCreated {
+        var apiErr APIError
+        json.NewDecoder(resp.Body).Decode(&apiErr)
+        return fmt.Errorf("API error: %s", apiErr.Message)
+    }
+    
+    return nil
+}
+```
+</CodeGroup>
+
+<Note>
+**Ready to Start?** Begin with [Authentication](/api-reference/authentication) to get your API token, then explore the [Applications API](/api-reference/apps/list) to start managing your infrastructure programmatically.
+</Note>

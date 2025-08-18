@@ -1,0 +1,740 @@
+---
+title: "GitHub Integration"
+description: "Complete guide to setting up GitHub OAuth integration and automated deployments"
+---
+
+## Overview
+
+Citizen's GitHub integration enables seamless repository connections, automated deployments, and webhook-driven CI/CD workflows. Connect your repositories to deploy applications directly from your GitHub account with full OAuth security.
+
+<Warning>
+**Prerequisites**: You need a GitHub account with repository access and admin privileges on your Citizen installation to configure OAuth applications.
+</Warning>
+
+## GitHub OAuth Setup
+
+Configure GitHub OAuth to enable secure repository access and automated deployments.
+
+<Steps>
+<Step title="Create GitHub OAuth App">
+  Navigate to GitHub Developer Settings to create a new OAuth application.
+  
+  1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
+  2. Click **"New OAuth App"**
+  3. Fill in the application details:
+  
+  <ParamField body="Application name" type="string" required>
+  A descriptive name for your Citizen installation (e.g., "My Company Citizen")
+  </ParamField>
+  
+  <ParamField body="Homepage URL" type="string" required>
+  Your Citizen domain: `https://yourdomain.com`
+  </ParamField>
+  
+  <ParamField body="Authorization callback URL" type="string" required>
+  Callback endpoint: `https://yourdomain.com/api/v1/github/auth/callback`
+  </ParamField>
+  
+  <Check>
+  GitHub will generate a Client ID and Client Secret for your application.
+  </Check>
+</Step>
+
+<Step title="Configure Citizen">
+  Add GitHub OAuth credentials to your Citizen installation.
+  
+  <Tabs>
+  <Tab title="Web Interface">
+    1. Log in to your Citizen dashboard
+    2. Navigate to **Settings** → **Integrations**
+    3. Click **"Configure GitHub"**
+    4. Enter your OAuth credentials:
+    
+    ```
+    Client ID: your_github_client_id
+    Client Secret: your_github_client_secret
+    ```
+    
+    5. Click **"Save Configuration"**
+    
+    <Check>
+    Citizen will validate the credentials and enable GitHub integration.
+    </Check>
+  </Tab>
+  
+  <Tab title="Environment Variables">
+    Add GitHub credentials to your environment configuration:
+    
+    ```bash
+    # Edit your .env file
+    GITHUB_CLIENT_ID=your_github_client_id
+    GITHUB_CLIENT_SECRET=your_github_client_secret
+    GITHUB_REDIRECT_URI=https://yourdomain.com/api/v1/github/auth/callback
+    ```
+    
+    Restart your Citizen services:
+    ```bash
+    docker-compose restart
+    ```
+  </Tab>
+  </Tabs>
+</Step>
+
+<Step title="Test Integration">
+  Verify GitHub OAuth is working correctly.
+  
+  1. Navigate to **Applications** → **Create New App**
+  2. Select **"Deploy from GitHub"**
+  3. Click **"Connect GitHub Account"**
+  4. Authorize Citizen to access your repositories
+  
+  <Check>
+  You should see your GitHub repositories listed in the deployment interface.
+  </Check>
+</Step>
+</Steps>
+
+## Repository Connection
+
+Connect GitHub repositories to your Citizen applications for automated deployments.
+
+### Connect Repository to Application
+
+<Steps>
+<Step title="Select Repository">
+  Choose the GitHub repository you want to deploy.
+  
+  <RequestExample>
+  ```bash Connect Repository
+  curl -X POST 'https://yourdomain.com/api/v1/apps/myapp/github' \
+    -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+    -H 'Content-Type: application/json' \
+    -d '{
+      "repository": "username/repository-name",
+      "branch": "main",
+      "auto_deploy": true
+    }'
+  ```
+  </RequestExample>
+  
+  <ResponseExample>
+  ```json Success Response
+  {
+    "success": true,
+    "message": "Repository connected successfully",
+    "data": {
+      "app_id": "myapp",
+      "repository": "username/repository-name",
+      "branch": "main",
+      "auto_deploy": true,
+      "webhook_url": "https://yourdomain.com/api/v1/webhooks/github/myapp"
+    }
+  }
+  ```
+  </ResponseExample>
+</Step>
+
+<Step title="Configure Deployment Settings">
+  Set up deployment configuration for your repository.
+  
+  <ParamField body="branch" type="string" default="main">
+  Git branch to deploy from (main, develop, production, etc.)
+  </ParamField>
+  
+  <ParamField body="auto_deploy" type="boolean" default="false">
+  Enable automatic deployments on push to the specified branch
+  </ParamField>
+  
+  <ParamField body="build_command" type="string">
+  Custom build command to run before deployment (optional)
+  </ParamField>
+  
+  <ParamField body="dockerfile_path" type="string" default="Dockerfile">
+  Path to Dockerfile relative to repository root
+  </ParamField>
+  
+  <ParamField body="environment" type="object">
+  Environment variables to set for the application
+  </ParamField>
+</Step>
+
+<Step title="Manual Deployment">
+  Trigger a manual deployment to test the connection.
+  
+  1. Navigate to your application dashboard
+  2. Click **"Deploy"** → **"Deploy from GitHub"**
+  3. Select the connected repository and branch
+  4. Click **"Start Deployment"**
+  
+  <Check>
+  Monitor the deployment progress in real-time with live build logs.
+  </Check>
+</Step>
+</Steps>
+
+### Private Repository Access
+
+For private repositories, additional configuration is required.
+
+<AccordionGroup>
+<Accordion title="Personal Access Token Setup">
+Create a GitHub Personal Access Token for private repository access:
+
+1. Go to [GitHub Personal Access Tokens](https://github.com/settings/tokens)
+2. Click **"Generate new token (classic)"**
+3. Select the following scopes:
+   - `repo` - Full repository access
+   - `read:user` - Read user profile information
+   - `user:email` - Access user email addresses
+
+```bash
+# Configure in Citizen
+curl -X POST 'https://yourdomain.com/api/v1/github/token' \
+  -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "token": "ghp_your_personal_access_token"
+  }'
+```
+
+<Warning>
+Store your Personal Access Token securely. It provides access to your private repositories.
+</Warning>
+</Accordion>
+
+<Accordion title="Organization Repository Access">
+For organization repositories, ensure proper permissions:
+
+**Repository Permissions:**
+- Admin or maintainer access to the repository
+- Organization OAuth app approval
+- Third-party application access enabled
+
+**Configuration Steps:**
+1. Contact your organization admin
+2. Request approval for Citizen OAuth app
+3. Ensure your user has appropriate repository permissions
+4. Test connection after approval
+
+```bash
+# Verify organization access
+curl -X GET 'https://yourdomain.com/api/v1/github/repos' \
+  -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+```
+</Accordion>
+</AccordionGroup>
+
+## Automated Deployments
+
+Set up webhook-driven automated deployments for continuous deployment workflows.
+
+### Webhook Configuration
+
+<Steps>
+<Step title="Generate Webhook URL">
+  Citizen automatically generates unique webhook URLs for each connected repository.
+  
+  <Info>
+  Webhook URL format: `https://yourdomain.com/api/v1/webhooks/github/{app_name}?secret={webhook_secret}`
+  </Info>
+  
+  Find your webhook URL in the application settings:
+  ```bash
+  curl -X GET 'https://yourdomain.com/api/v1/apps/myapp/github' \
+    -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+  ```
+</Step>
+
+<Step title="Configure GitHub Webhook">
+  Add the webhook to your GitHub repository.
+  
+  1. Navigate to your repository on GitHub
+  2. Go to **Settings** → **Webhooks**
+  3. Click **"Add webhook"**
+  4. Configure the webhook:
+  
+  <ParamField body="Payload URL" type="string" required>
+  Your Citizen webhook URL
+  </ParamField>
+  
+  <ParamField body="Content type" type="string" required>
+  `application/json`
+  </ParamField>
+  
+  <ParamField body="Secret" type="string" required>
+  Webhook secret from Citizen (for security verification)
+  </ParamField>
+  
+  <ParamField body="Events" type="array" required>
+  Select "Just the push event" or customize as needed
+  </ParamField>
+  
+  5. Click **"Add webhook"**
+  
+  <Check>
+  GitHub will send a test payload to verify the webhook configuration.
+  </Check>
+</Step>
+
+<Step title="Test Automated Deployment">
+  Push a commit to trigger automated deployment.
+  
+  ```bash
+  # Make a change and push to your repository
+  git add .
+  git commit -m "Trigger automated deployment"
+  git push origin main
+  ```
+  
+  Monitor the deployment in your Citizen dashboard:
+  - Real-time build logs
+  - Deployment status updates
+  - Error notifications if deployment fails
+  
+  <Check>
+  Successful deployment will update your application automatically.
+  </Check>
+</Step>
+</Steps>
+
+### Deployment Strategies
+
+<Tabs>
+<Tab title="Branch-based Deployment">
+Deploy different branches to different environments:
+
+```json Branch Configuration
+{
+  "branches": {
+    "main": {
+      "environment": "production",
+      "auto_deploy": true,
+      "health_check_url": "/health"
+    },
+    "develop": {
+      "environment": "staging",
+      "auto_deploy": true,
+      "health_check_url": "/health"
+    },
+    "feature/*": {
+      "environment": "preview",
+      "auto_deploy": false,
+      "cleanup_after": "7d"
+    }
+  }
+}
+```
+
+**Benefits:**
+- Separate environments for each branch
+- Automatic cleanup of feature branches
+- Environment-specific configuration
+</Tab>
+
+<Tab title="Tag-based Deployment">
+Deploy specific tags to production:
+
+```json Tag Configuration
+{
+  "deployment": {
+    "strategy": "tag",
+    "pattern": "v*",
+    "auto_deploy": false,
+    "require_approval": true
+  },
+  "environments": {
+    "production": {
+      "tags": ["v*"],
+      "require_approval": true
+    },
+    "staging": {
+      "branches": ["main"],
+      "auto_deploy": true
+    }
+  }
+}
+```
+
+**Benefits:**
+- Controlled production deployments
+- Version tracking with Git tags
+- Manual approval process for releases
+</Tab>
+
+<Tab title="Pull Request Previews">
+Create preview environments for pull requests:
+
+```json PR Preview Configuration
+{
+  "pull_requests": {
+    "create_preview": true,
+    "domains": {
+      "pattern": "pr-{number}.yourdomain.com"
+    },
+    "cleanup": {
+      "on_merge": true,
+      "on_close": true,
+      "after_days": 7
+    }
+  }
+}
+```
+
+**Features:**
+- Automatic preview environment creation
+- Unique subdomain for each PR
+- Automatic cleanup when PR is merged/closed
+</Tab>
+</Tabs>
+
+## Advanced GitHub Features
+
+Leverage advanced GitHub integration capabilities for enhanced workflows.
+
+### GitHub Actions Integration
+
+<Tabs>
+<Tab title="Deployment Action">
+Create a GitHub Action that deploys to Citizen:
+
+```yaml .github/workflows/deploy.yml
+name: Deploy to Citizen
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy to Citizen
+        uses: citizenteam/deploy-action@v1
+        with:
+          citizen-url: ${{ secrets.CITIZEN_URL }}
+          api-token: ${{ secrets.CITIZEN_API_TOKEN }}
+          app-name: ${{ secrets.APP_NAME }}
+          environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+```
+</Tab>
+
+<Tab title="Build and Deploy">
+Advanced workflow with build artifacts:
+
+```yaml .github/workflows/build-deploy.yml
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main, develop]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_REGISTRY }}/myapp:${{ github.sha }}
+            ${{ secrets.DOCKER_REGISTRY }}/myapp:latest
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Citizen
+        run: |
+          curl -X POST '${{ secrets.CITIZEN_URL }}/api/v1/apps/myapp/deploy' \
+            -H 'Authorization: Bearer ${{ secrets.CITIZEN_API_TOKEN }}' \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "image": "${{ needs.build.outputs.image-tag }}",
+              "environment": "${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}"
+            }'
+```
+</Tab>
+
+<Tab title="Status Updates">
+Update GitHub commit status with deployment results:
+
+```yaml Status Updates
+- name: Update deployment status
+  if: always()
+  uses: actions/github-script@v7
+  with:
+    script: |
+      const state = '${{ job.status }}' === 'success' ? 'success' : 'failure';
+      const description = state === 'success' 
+        ? 'Deployment completed successfully' 
+        : 'Deployment failed';
+      
+      await github.rest.repos.createCommitStatus({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        sha: context.sha,
+        state: state,
+        description: description,
+        target_url: '${{ secrets.CITIZEN_URL }}/apps/myapp'
+      });
+```
+</Tab>
+</Tabs>
+
+### Repository Templates
+
+Create repository templates for consistent project setup:
+
+<AccordionGroup>
+<Accordion title="Node.js Application Template">
+```json citizen.json
+{
+  "name": "nodejs-app",
+  "type": "nodejs",
+  "version": "1.0.0",
+  "build": {
+    "command": "npm run build",
+    "output": "dist/"
+  },
+  "runtime": {
+    "node_version": "18",
+    "package_manager": "npm"
+  },
+  "environment": {
+    "NODE_ENV": "production",
+    "PORT": "3000"
+  },
+  "health_check": {
+    "path": "/health",
+    "timeout": 30
+  }
+}
+```
+
+**Dockerfile:**
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+RUN npm run build
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+</Accordion>
+
+<Accordion title="Python Application Template">
+```json citizen.json
+{
+  "name": "python-app",
+  "type": "python",
+  "version": "1.0.0",
+  "build": {
+    "command": "pip install -r requirements.txt",
+    "output": "."
+  },
+  "runtime": {
+    "python_version": "3.11",
+    "package_manager": "pip"
+  },
+  "environment": {
+    "PYTHONPATH": "/app",
+    "PORT": "8000"
+  },
+  "health_check": {
+    "path": "/health",
+    "timeout": 30
+  }
+}
+```
+
+**Dockerfile:**
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+EXPOSE 8000
+CMD ["python", "app.py"]
+```
+</Accordion>
+
+<Accordion title="Go Application Template">
+```json citizen.json
+{
+  "name": "go-app",
+  "type": "go",
+  "version": "1.0.0",
+  "build": {
+    "command": "go build -o main .",
+    "output": "main"
+  },
+  "runtime": {
+    "go_version": "1.21"
+  },
+  "environment": {
+    "CGO_ENABLED": "0",
+    "GOOS": "linux",
+    "PORT": "8080"
+  },
+  "health_check": {
+    "path": "/health",
+    "timeout": 30
+  }
+}
+```
+
+**Dockerfile:**
+```dockerfile
+FROM golang:1.21-alpine AS builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o main .
+
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
+WORKDIR /root/
+COPY --from=builder /app/main .
+EXPOSE 8080
+CMD ["./main"]
+```
+</Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+Common issues and solutions for GitHub integration.
+
+<AccordionGroup>
+<Accordion title="OAuth Authentication Issues">
+**Symptoms:**
+- "Invalid OAuth configuration" error
+- Redirect loop during GitHub authentication
+- "Unauthorized" error when connecting repositories
+
+**Solutions:**
+```bash
+# Verify OAuth configuration
+curl -X GET 'https://yourdomain.com/api/v1/github/config' \
+  -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+
+# Check GitHub OAuth app settings
+# Ensure callback URL matches exactly
+# Verify Client ID and Secret are correct
+# Check GitHub app is not suspended
+
+# Test OAuth flow manually
+curl -X GET 'https://github.com/login/oauth/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=https://yourdomain.com/api/v1/github/auth/callback&scope=repo'
+```
+</Accordion>
+
+<Accordion title="Webhook Delivery Issues">
+**Symptoms:**
+- Deployments not triggering automatically
+- GitHub shows webhook delivery failures
+- Missing webhook events in Citizen logs
+
+**Solutions:**
+```bash
+# Check webhook configuration
+curl -X GET 'https://api.github.com/repos/USERNAME/REPO/hooks' \
+  -H 'Authorization: token YOUR_GITHUB_TOKEN'
+
+# Verify webhook secret
+curl -X GET 'https://yourdomain.com/api/v1/apps/myapp/github' \
+  -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+
+# Test webhook manually
+curl -X POST 'https://yourdomain.com/api/v1/webhooks/github/myapp' \
+  -H 'Content-Type: application/json' \
+  -H 'X-GitHub-Event: push' \
+  -H 'X-Hub-Signature-256: sha256=CALCULATED_SIGNATURE' \
+  -d '{"ref": "refs/heads/main", "repository": {"full_name": "username/repo"}}'
+
+# Check Citizen webhook logs
+docker logs citizen-backend | grep webhook
+```
+</Accordion>
+
+<Accordion title="Private Repository Access">
+**Symptoms:**
+- "Repository not found" error for private repos
+- Authentication failures during git clone
+- Missing repositories in connection list
+
+**Solutions:**
+```bash
+# Verify Personal Access Token
+curl -X GET 'https://api.github.com/user' \
+  -H 'Authorization: token YOUR_GITHUB_TOKEN'
+
+# Check token scopes
+curl -X GET 'https://api.github.com/user' \
+  -H 'Authorization: token YOUR_GITHUB_TOKEN' \
+  -I | grep X-OAuth-Scopes
+
+# Required scopes: repo, read:user, user:email
+
+# Test repository access
+curl -X GET 'https://api.github.com/repos/USERNAME/PRIVATE_REPO' \
+  -H 'Authorization: token YOUR_GITHUB_TOKEN'
+
+# Update token in Citizen
+curl -X PUT 'https://yourdomain.com/api/v1/github/token' \
+  -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"token": "NEW_GITHUB_TOKEN"}'
+```
+</Accordion>
+
+<Accordion title="Deployment Failures">
+**Symptoms:**
+- Build failures during automated deployment
+- Timeout errors during deployment
+- Application not starting after deployment
+
+**Solutions:**
+```bash
+# Check deployment logs
+curl -X GET 'https://yourdomain.com/api/v1/apps/myapp/deployments/latest/logs' \
+  -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+
+# Verify Dockerfile
+# Ensure Dockerfile is in repository root
+# Check for syntax errors
+# Verify exposed port matches application
+
+# Test manual deployment
+curl -X POST 'https://yourdomain.com/api/v1/apps/myapp/deploy' \
+  -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "source": "github",
+    "repository": "username/repo",
+    "branch": "main"
+  }'
+
+# Check application health
+curl -X GET 'https://yourdomain.com/api/v1/apps/myapp/health' \
+  -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+```
+</Accordion>
+</AccordionGroup>
+
+<Note>
+**Next Steps**: With GitHub integration configured, explore [Docker Hub Integration](/integrations/docker) for private registry support, or learn about [Application Deployment](/guides/deploy-app) for comprehensive deployment strategies.
+</Note>

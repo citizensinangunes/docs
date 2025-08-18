@@ -1,97 +1,147 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Welcome to Citizen"
+description: "Comprehensive web-based management platform for modern application infrastructure"
 ---
 
-## Setting up
+## Overview
 
-Get your documentation site up and running in minutes.
+Citizen transforms complex command-line infrastructure operations into an intuitive web-based experience. Built for developers and teams who need powerful application deployment and management capabilities without the complexity.
 
 <Card
-  title="Start here"
+  title="Quick Start"
   icon="rocket"
   href="/quickstart"
   horizontal
 >
-  Follow our three step quickstart guide.
+  Get Citizen running in under 5 minutes with our one-command installer.
 </Card>
 
-## Make it yours
+## Core Features
 
-Design a docs site that looks great and empowers your users.
+Experience enterprise-grade infrastructure management through a modern web interface.
 
-<Columns cols={2}>
+<CardGroup cols={2}>
   <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
-  </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
+    title="One-Command Setup"
     icon="terminal"
-    href="/api-reference/introduction"
+    href="/installation"
   >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
-
-## Create beautiful pages
-
-Everything you need to create world-class documentation.
-
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
+    Deploy Citizen with automated SSL, authentication, and monitoring in minutes.
   </Card>
   <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
+    title="GitHub Integration"
+    icon="github"
+    href="/integrations/github"
   >
-    Add sample code to demonstrate how to use your product.
+    OAuth-based repository connections with automated deployments and webhooks.
   </Card>
   <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
+    title="Enterprise Security"
+    icon="shield-check"
+    href="/security"
   >
-    Display images and other media.
+    JWT-based SSO, CSRF protection, and container hardening out of the box.
   </Card>
   <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
+    title="Real-time Monitoring"
+    icon="chart-line"
+    href="/monitoring"
   >
-    Write once and reuse across your docs.
+    Live logs, health checks, and comprehensive system metrics dashboard.
   </Card>
-</Columns>
+</CardGroup>
 
-## Need inspiration?
+## Technology Stack
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
+Built with modern, performant technologies for production-ready deployments.
+
+<Tabs>
+<Tab title="Backend">
+**Go 1.23+** with **Fiber v2** framework
+- High-performance API server
+- **PostgreSQL 16** with JSONB support
+- **Redis 7** for session management
+- **GORM** with auto-migrations
+</Tab>
+
+<Tab title="Frontend">
+**Preact 10** with **TypeScript 5**
+- Lightweight React alternative (3KB)
+- **Vite** build system with HMR
+- **Tailwind CSS** utility framework
+- **Wouter** minimalist routing (1.3KB)
+</Tab>
+
+<Tab title="Infrastructure">
+**Docker** containerization platform
+- **Traefik v3.4** reverse proxy
+- **Let's Encrypt** automatic SSL
+- **Dokku** PaaS integration
+</Tab>
+</Tabs>
+
+## Architecture Overview
+
+<Frame>
+<img src="/images/citizen-architecture.png" alt="Citizen system architecture diagram showing web interface, API backend, and Dokku integration" />
+</Frame>
+
+Citizen provides a comprehensive management layer over your Dokku infrastructure, delivering enterprise features through an intuitive web interface.
+
+## Get Started
+
+<Steps>
+<Step title="Quick Installation">
+  Run our one-command installer to deploy Citizen with production-ready configuration.
+  
+  ```bash
+  curl -sSL https://raw.githubusercontent.com/citizenteam/citizen/main/install.sh | bash
+  ```
+  
+  <Check>
+  Installation typically completes in 2-3 minutes with automatic SSL setup.
+  </Check>
+</Step>
+
+<Step title="Configure DNS">
+  Point your domain to your server for automatic SSL certificate generation.
+  
+  ```bash
+  # Required DNS records
+  yourdomain.com      A     YOUR_SERVER_IP
+  *.yourdomain.com    A     YOUR_SERVER_IP
+  ```
+  
+  <Warning>
+  DNS propagation can take up to 48 hours. SSL certificates generate automatically after DNS is configured.
+  </Warning>
+</Step>
+
+<Step title="Access Dashboard">
+  Navigate to your domain and complete the initial admin user setup.
+  
+  <Check>
+  Your Citizen dashboard is now ready for application management!
+  </Check>
+</Step>
+</Steps>
+
+## Production Ready
+
+<CardGroup cols={3}>
+<Card title="Tested Platforms" icon="cloud">
+  Production-tested on DigitalOcean, AWS EC2, and major cloud providers.
 </Card>
+
+<Card title="Enterprise Security" icon="lock">
+  Hardened containers, security headers, and comprehensive audit logging.
+</Card>
+
+<Card title="High Performance" icon="bolt">
+  Sub-50ms API responses with efficient resource utilization.
+</Card>
+</CardGroup>
+
+<Note>
+**Ready to deploy?** Our [Quick Start Guide](/quickstart) will have you running Citizen in minutes, or explore our comprehensive [Installation Guide](/installation) for detailed configuration options.
+</Note>

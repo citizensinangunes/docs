@@ -1,80 +1,210 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: "Quick Start"
+description: "Get Citizen running in under 5 minutes with production-ready infrastructure management"
 ---
 
-## Get started in three steps
+## Deploy Citizen in 3 Simple Steps
 
-Get your documentation site running locally and make your first customization.
+Transform your application infrastructure management from command-line complexity to an intuitive web experience in minutes.
 
-### Step 1: Set up your local environment
+<Warning>
+**Prerequisites**: You need a server with Docker, Docker Compose v2.0+, and at least 4GB RAM. A domain name is required for production SSL setup.
+</Warning>
+
+<Steps>
+<Step title="Run the Installer">
+  Execute our one-command installer to automatically deploy Citizen with production-ready configuration.
+  
+  ```bash
+  curl -sSL https://raw.githubusercontent.com/citizenteam/citizen/main/install.sh | bash
+  ```
+  
+  The installer will:
+  - Configure development or production environment
+  - Set up Traefik reverse proxy with SSL
+  - Initialize PostgreSQL and Redis
+  - Create admin user credentials
+  
+  <Check>
+  Installation typically completes in 2-3 minutes with all services running.
+  </Check>
+</Step>
+
+<Step title="Configure Your Domain">
+  Set up DNS records to enable automatic SSL certificates and subdomain routing.
+  
+  <Tabs>
+  <Tab title="Production Setup">
+    ```bash
+    # Required DNS A records
+    yourdomain.com      A     YOUR_SERVER_IP
+    *.yourdomain.com    A     YOUR_SERVER_IP
+    ```
+    
+    <Warning>
+    DNS propagation can take up to 48 hours. SSL certificates generate automatically after DNS is properly configured.
+    </Warning>
+  </Tab>
+  
+  <Tab title="Development Setup">
+    ```bash
+    # Local development uses localhost
+    # No DNS configuration required
+    # Access via: http://localhost
+    ```
+    
+    <Info>
+    Development mode includes hot reload and debug tools like pgAdmin and Redis Commander.
+    </Info>
+  </Tab>
+  </Tabs>
+</Step>
+
+<Step title="Access Your Dashboard">
+  Navigate to your domain and complete the initial setup process.
+  
+  <Tabs>
+  <Tab title="Production">
+    1. Visit `https://yourdomain.com`
+    2. Log in with your admin credentials
+    3. Complete the GitHub and Docker Hub integration setup
+    
+    <Check>
+    Your production Citizen dashboard is ready for enterprise application management!
+    </Check>
+  </Tab>
+  
+  <Tab title="Development">
+    1. Visit `http://localhost`
+    2. Use default credentials or create new admin user
+    3. Explore development tools at:
+       - pgAdmin: `http://localhost:5050`
+       - Redis Commander: `http://localhost:8081`
+       - Traefik Dashboard: `http://localhost:8080`
+    
+    <Check>
+    Your development environment is ready with hot reload and debugging tools!
+    </Check>
+  </Tab>
+  </Tabs>
+</Step>
+</Steps>
+
+## Verify Your Installation
+
+Confirm all services are running correctly with our health check endpoints.
+
+<CodeGroup>
+```bash System Health
+curl https://yourdomain.com/api/v1/health
+```
+
+```bash Detailed Metrics
+curl https://yourdomain.com/api/v1/health/detailed
+```
+
+```bash Component Status
+curl https://yourdomain.com/api/v1/health/ready
+```
+</CodeGroup>
 
 <AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
+<Accordion title="Expected Health Response">
+```json
+{
+  "status": "healthy",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "environment": "production",
+  "components": {
+    "database": {"status": "healthy", "response_time": "2ms"},
+    "redis": {"status": "healthy", "memory_usage": "45MB"},
+    "ssh": {"status": "configured", "host": "dokku.example.com"}
+  },
+  "metrics": {
+    "memory": {"alloc": 15, "sys": 25, "heap_alloc": 12},
+    "goroutines": 45,
+    "gc_runs": 123
+  }
+}
+```
 </Accordion>
 
-## Next steps
+<Accordion title="Troubleshooting Installation Issues">
+**Common Issues and Solutions:**
 
-Now that you have your docs running, explore these key features:
+- **Port conflicts**: Ensure ports 80, 443, 3000, 5432, and 6379 are available
+- **Docker permissions**: Add your user to the docker group: `sudo usermod -aG docker $USER`
+- **Memory issues**: Citizen requires minimum 4GB RAM for production workloads
+- **SSL certificate failures**: Verify DNS propagation with `nslookup yourdomain.com`
+
+**Debug Commands:**
+```bash
+# Check service status
+docker ps
+
+# View logs
+docker logs citizen-backend
+docker logs citizen-frontend
+docker logs traefik
+
+# Restart services
+docker-compose restart
+```
+</Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+Now that Citizen is running, explore the core features that will transform your infrastructure management.
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
+<Card title="Connect GitHub" icon="github" href="/integrations/github">
+  Set up OAuth integration for automated deployments from your repositories.
 </Card>
 
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
+<Card title="Configure Docker Hub" icon="docker" href="/integrations/docker">
+  Connect private registries for seamless container deployment.
 </Card>
 
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
+<Card title="Deploy Your First App" icon="rocket" href="/guides/deploy-app">
+  Learn how to deploy and manage applications through the web interface.
 </Card>
 
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
+<Card title="Monitor Performance" icon="chart-line" href="/monitoring">
+  Explore real-time monitoring, logs, and health check capabilities.
 </Card>
-
 </CardGroup>
 
+## System Requirements
+
+<Tabs>
+<Tab title="Production">
+**Minimum Requirements:**
+- 2 CPU cores, 8GB RAM
+- 50GB SSD storage
+- 1Gbps network connection
+- Ubuntu 20.04+ or similar
+
+**Recommended:**
+- 4+ CPU cores, 16GB+ RAM
+- 100GB+ SSD storage
+- Domain with DNS control
+</Tab>
+
+<Tab title="Development">
+**Minimum Requirements:**
+- 2 CPU cores, 4GB RAM
+- 20GB storage
+- Docker & Docker Compose v2.0+
+
+**Tools Included:**
+- Hot reload (Air + Vite HMR)
+- pgAdmin database management
+- Redis Commander
+- Traefik dashboard
+</Tab>
+</Tabs>
+
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+**Need help?** Check our [Installation Guide](/installation) for detailed configuration options, or explore our [Architecture Documentation](/architecture) to understand how Citizen works.
 </Note>

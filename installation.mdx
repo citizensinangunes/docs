@@ -1,0 +1,677 @@
+---
+title: "Installation Guide"
+description: "Comprehensive guide for deploying Citizen in development and production environments"
+---
+
+## Installation Methods
+
+Choose the deployment method that best fits your needs. Our one-command installer handles both development and production scenarios with intelligent environment detection.
+
+<CardGroup cols={2}>
+<Card title="Quick Install" icon="bolt" href="#quick-installation">
+  One-command deployment for most use cases
+</Card>
+
+<Card title="Manual Setup" icon="gear" href="#manual-installation">
+  Step-by-step configuration for custom environments
+</Card>
+</CardGroup>
+
+## Quick Installation
+
+The fastest way to get Citizen running with production-ready defaults.
+
+<Steps>
+<Step title="Run the Installer">
+  Execute our intelligent installer that automatically configures your environment.
+  
+  ```bash
+  curl -sSL https://raw.githubusercontent.com/citizenteam/citizen/main/install.sh | bash
+  ```
+  
+  The installer will:
+  - Detect your environment (development vs production)
+  - Configure Docker Compose services
+  - Set up Traefik reverse proxy
+  - Initialize databases
+  - Generate secure credentials
+  
+  <Info>
+  The installer supports both interactive and automated modes. It will prompt for essential configuration options.
+  </Info>
+</Step>
+
+<Step title="Environment Selection">
+  Choose your deployment target when prompted.
+  
+  <Tabs>
+  <Tab title="Production">
+    ```bash
+    Environment: Production
+    Domain: yourdomain.com
+    SSL: Automatic (Let's Encrypt)
+    Admin User: Interactive setup
+    SSH Keys: /ssh_keys/id_rsa
+    ```
+    
+    **Features:**
+    - Hardened security configuration
+    - Automatic SSL certificates
+    - Read-only containers
+    - Resource limits and health checks
+    - Structured logging
+  </Tab>
+  
+  <Tab title="Development">
+    ```bash
+    Environment: Development
+    Domain: localhost
+    SSL: Disabled
+    Admin User: admin/admin123
+    SSH Keys: ~/.ssh/id_rsa
+    ```
+    
+    **Features:**
+    - Hot reload (Air + Vite HMR)
+    - Debug tools (pgAdmin, Redis Commander)
+    - Verbose logging
+    - Direct port access
+    - Source code mounting
+  </Tab>
+  </Tabs>
+</Step>
+
+<Step title="Verify Installation">
+  Confirm all services are running and accessible.
+  
+  ```bash
+  # Check service status
+  docker ps
+  
+  # Test health endpoints
+  curl http://localhost/api/v1/health
+  ```
+  
+  <Check>
+  All services should show "healthy" status within 2-3 minutes.
+  </Check>
+</Step>
+</Steps>
+
+## Manual Installation
+
+For advanced users who need custom configuration or want to understand the deployment process.
+
+### Prerequisites
+
+Ensure your system meets the requirements before proceeding.
+
+<Tabs>
+<Tab title="System Requirements">
+**Hardware:**
+- CPU: 2 cores minimum (4+ recommended)
+- RAM: 4GB minimum (8GB+ recommended)
+- Storage: 20GB minimum (50GB+ recommended)
+- Network: 1Gbps connection
+
+**Operating System:**
+- Ubuntu 20.04+ (recommended)
+- Debian 11+
+- CentOS 8+
+- Any Docker-compatible Linux distribution
+</Tab>
+
+<Tab title="Software Dependencies">
+**Required:**
+- Docker 20.10+
+- Docker Compose v2.0+
+- Git 2.0+
+- curl/wget
+
+**Installation Commands:**
+```bash
+# Ubuntu/Debian
+sudo apt update
+sudo apt install docker.io docker-compose-v2 git curl
+
+# CentOS/RHEL
+sudo yum install docker docker-compose git curl
+sudo systemctl enable --now docker
+
+# Add user to docker group
+sudo usermod -aG docker $USER
+newgrp docker
+```
+</Tab>
+
+<Tab title="Network Requirements">
+**Firewall Configuration:**
+- Port 80 (HTTP) - Required for Let's Encrypt challenges
+- Port 443 (HTTPS) - Required for secure access
+- Port 22 (SSH) - For server administration
+
+**Additional Ports (Development):**
+- Port 3000 - Frontend development server
+- Port 5050 - pgAdmin interface
+- Port 8081 - Redis Commander
+- Port 8080 - Traefik dashboard
+
+```bash
+# UFW firewall rules (Ubuntu)
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 22/tcp
+```
+</Tab>
+</Tabs>
+
+### Step-by-Step Setup
+
+<Steps>
+<Step title="Clone Repository">
+  Download the Citizen source code and navigate to the deployment directory.
+  
+  ```bash
+  git clone https://github.com/citizenteam/citizen.git
+  cd citizen/docker
+  ```
+  
+  <Info>
+  The `docker` directory contains all deployment configurations and scripts.
+  </Info>
+</Step>
+
+<Step title="Configure Environment">
+  Set up your environment variables and configuration files.
+  
+  ```bash
+  # Copy example configuration
+  cp .env.example .env
+  
+  # Edit configuration file
+  nano .env
+  ```
+  
+  **Required Environment Variables:**
+  
+  <ParamField env="DOMAIN" type="string" required>
+  Your domain name (e.g., `yourdomain.com` for production, `localhost` for development)
+  </ParamField>
+  
+  <ParamField env="ENVIRONMENT" type="string" required>
+  Deployment environment: `production` or `development`
+  </ParamField>
+  
+  <ParamField env="POSTGRES_PASSWORD" type="string" required>
+  Database password (automatically generated if not set)
+  </ParamField>
+  
+  <ParamField env="JWT_SECRET" type="string" required>
+  JWT signing secret (automatically generated if not set)
+  </ParamField>
+  
+  <ParamField env="ADMIN_USERNAME" type="string">
+  Initial admin username (defaults to `admin`)
+  </ParamField>
+  
+  <ParamField env="ADMIN_PASSWORD" type="string">
+  Initial admin password (prompted during setup if not set)
+  </ParamField>
+</Step>
+
+<Step title="Setup SSH Access">
+  Configure SSH keys for Dokku server communication.
+  
+  <Tabs>
+  <Tab title="Production">
+    ```bash
+    # Create SSH keys directory
+    mkdir -p ssh_keys
+    
+    # Copy your SSH private key
+    cp ~/.ssh/id_rsa ssh_keys/id_rsa
+    chmod 600 ssh_keys/id_rsa
+    
+    # Verify key access to Dokku server
+    ssh -i ssh_keys/id_rsa dokku@your-dokku-server.com
+    ```
+  </Tab>
+  
+  <Tab title="Development">
+    ```bash
+    # Development uses your existing SSH keys
+    # Ensure you have access to your Dokku server
+    ssh dokku@your-dokku-server.com
+    
+    # If needed, generate new SSH key
+    ssh-keygen -t rsa -b 4096 -C "your-email@example.com"
+    ```
+  </Tab>
+  </Tabs>
+  
+  <Warning>
+  Ensure your SSH key has access to your Dokku server before proceeding. Test the connection manually.
+  </Warning>
+</Step>
+
+<Step title="Deploy Services">
+  Launch all Citizen services using Docker Compose.
+  
+  <CodeGroup>
+  ```bash Production
+  # Deploy production environment
+  docker-compose -f docker-compose.prod.yml up -d
+  
+  # View service status
+  docker-compose -f docker-compose.prod.yml ps
+  ```
+  
+  ```bash Development
+  # Deploy development environment
+  docker-compose -f docker-compose.dev.yml up -d
+  
+  # View service status with logs
+  docker-compose -f docker-compose.dev.yml logs -f
+  ```
+  </CodeGroup>
+  
+  **Service Startup Order:**
+  1. PostgreSQL database
+  2. Redis cache
+  3. Traefik reverse proxy
+  4. Citizen backend API
+  5. Citizen frontend
+  
+  <Check>
+  Wait for all services to report healthy status before proceeding.
+  </Check>
+</Step>
+
+<Step title="Initialize Database">
+  Run database migrations and create initial admin user.
+  
+  ```bash
+  # Run database migrations
+  docker exec citizen-backend /app/migrate
+  
+  # Create admin user (if not configured via environment)
+  docker exec -it citizen-backend /app/create-admin
+  ```
+  
+  <Info>
+  The backend service automatically runs migrations on startup, so manual migration is typically unnecessary.
+  </Info>
+</Step>
+</Steps>
+
+## DNS Configuration
+
+For production deployments, proper DNS configuration is critical for SSL certificate generation and subdomain routing.
+
+### Required DNS Records
+
+<Tabs>
+<Tab title="Standard Setup">
+```bash
+# Primary domain
+yourdomain.com      A     YOUR_SERVER_IP
+
+# Wildcard for app subdomains
+*.yourdomain.com    A     YOUR_SERVER_IP
+```
+
+**Example for apps:**
+- `myapp.yourdomain.com` → Your deployed application
+- `api.yourdomain.com` → API endpoint (if configured)
+- `admin.yourdomain.com` → Admin interface (if configured)
+</Tab>
+
+<Tab title="Custom Domains">
+```bash
+# For apps with custom domains
+# Option 1: CNAME to subdomain (Recommended)
+customdomain.com    CNAME    myapp.yourdomain.com
+
+# Option 2: Direct A record
+customdomain.com    A        YOUR_SERVER_IP
+```
+
+**Benefits of CNAME approach:**
+- Easier to manage
+- Automatic SSL certificate generation
+- Better for DNS changes
+</Tab>
+
+<Tab title="Advanced Configuration">
+```bash
+# Separate API domain
+api.yourdomain.com      A     YOUR_SERVER_IP
+
+# Admin interface
+admin.yourdomain.com    A     YOUR_SERVER_IP
+
+# Status page
+status.yourdomain.com   A     YOUR_SERVER_IP
+
+# Documentation
+docs.yourdomain.com     A     YOUR_SERVER_IP
+```
+
+**Use cases:**
+- API-first architectures
+- Multi-tenant deployments
+- Branded admin interfaces
+</Tab>
+</Tabs>
+
+### DNS Provider Examples
+
+<AccordionGroup>
+<Accordion title="Cloudflare">
+```bash
+# DNS Records in Cloudflare Dashboard
+Type: A     Name: @              Content: YOUR_SERVER_IP    Proxy: Orange Cloud
+Type: A     Name: *              Content: YOUR_SERVER_IP    Proxy: Gray Cloud
+```
+
+**Important:** Disable proxy (gray cloud) for wildcard to allow proper SSL certificate generation.
+</Accordion>
+
+<Accordion title="AWS Route53">
+```bash
+# Route53 Record Sets
+Type: A     Name: yourdomain.com         Value: YOUR_SERVER_IP    TTL: 300
+Type: A     Name: *.yourdomain.com       Value: YOUR_SERVER_IP    TTL: 300
+```
+
+**Alias records** can also be used if you have an Application Load Balancer.
+</Accordion>
+
+<Accordion title="Google Cloud DNS">
+```bash
+# Cloud DNS Records
+Type: A     Name: yourdomain.com         Data: YOUR_SERVER_IP     TTL: 300
+Type: A     Name: *.yourdomain.com       Data: YOUR_SERVER_IP     TTL: 300
+```
+</Accordion>
+
+<Accordion title="Namecheap">
+```bash
+# Advanced DNS Records
+Type: A Record     Host: @     Value: YOUR_SERVER_IP     TTL: 1800
+Type: A Record     Host: *     Value: YOUR_SERVER_IP     TTL: 1800
+```
+</Accordion>
+</AccordionGroup>
+
+## SSL Certificate Setup
+
+Citizen automatically handles SSL certificate generation using Let's Encrypt and Traefik.
+
+### Automatic SSL (Recommended)
+
+<Steps>
+<Step title="Verify DNS">
+  Ensure DNS records are properly configured and propagated.
+  
+  ```bash
+  # Test DNS resolution
+  nslookup yourdomain.com
+  nslookup test.yourdomain.com
+  
+  # Test HTTP access (should redirect to HTTPS)
+  curl -I http://yourdomain.com
+  ```
+</Step>
+
+<Step title="Monitor Certificate Generation">
+  Watch Traefik logs for SSL certificate creation.
+  
+  ```bash
+  # Monitor Traefik logs
+  docker logs traefik -f
+  
+  # Look for Let's Encrypt certificate messages
+  grep -i "certificate" docker logs traefik
+  ```
+  
+  <Info>
+  Certificate generation typically takes 1-2 minutes after DNS propagation is complete.
+  </Info>
+</Step>
+
+<Step title="Verify SSL">
+  Test SSL certificate installation and configuration.
+  
+  ```bash
+  # Test SSL connection
+  curl -I https://yourdomain.com
+  
+  # Check certificate details
+  openssl s_client -connect yourdomain.com:443 -servername yourdomain.com
+  ```
+  
+  <Check>
+  You should see a valid Let's Encrypt certificate with A+ SSL rating.
+  </Check>
+</Step>
+</Steps>
+
+### Manual SSL Certificate
+
+For custom SSL certificates or private deployments:
+
+<AccordionGroup>
+<Accordion title="Custom Certificate Setup">
+```bash
+# Create certificates directory
+mkdir -p config/ssl
+
+# Copy your certificates
+cp your-domain.crt config/ssl/
+cp your-domain.key config/ssl/
+
+# Update Traefik configuration
+# Edit config/traefik.yml to use file provider
+```
+
+**Traefik Configuration:**
+```yaml
+certificatesResolvers:
+  file:
+    file:
+      filename: /config/ssl/certificates.yml
+```
+</Accordion>
+
+<Accordion title="Wildcard Certificate">
+```bash
+# Generate wildcard certificate using certbot
+certbot certonly \
+  --dns-cloudflare \
+  --dns-cloudflare-credentials ~/.secrets/cloudflare.ini \
+  -d yourdomain.com \
+  -d "*.yourdomain.com"
+
+# Copy certificates to Citizen
+cp /etc/letsencrypt/live/yourdomain.com/fullchain.pem config/ssl/
+cp /etc/letsencrypt/live/yourdomain.com/privkey.pem config/ssl/
+```
+</Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+Common installation issues and their solutions.
+
+<AccordionGroup>
+<Accordion title="Port Conflicts">
+**Symptoms:** Services fail to start with port binding errors
+
+**Solutions:**
+```bash
+# Check port usage
+netstat -tulpn | grep :80
+netstat -tulpn | grep :443
+
+# Stop conflicting services
+sudo systemctl stop nginx
+sudo systemctl stop apache2
+
+# Or change Citizen ports in docker-compose.yml
+```
+</Accordion>
+
+<Accordion title="Docker Permission Issues">
+**Symptoms:** Permission denied errors when running Docker commands
+
+**Solutions:**
+```bash
+# Add user to docker group
+sudo usermod -aG docker $USER
+
+# Reload group membership
+newgrp docker
+
+# Or restart session
+logout # and login again
+
+# Verify Docker access
+docker ps
+```
+</Accordion>
+
+<Accordion title="SSL Certificate Failures">
+**Symptoms:** SSL certificates not generating or HTTPS not working
+
+**Solutions:**
+```bash
+# Verify DNS propagation
+dig yourdomain.com
+dig +short test.yourdomain.com
+
+# Check Traefik logs
+docker logs traefik | grep -i error
+
+# Restart Traefik service
+docker-compose restart traefik
+
+# Manual certificate generation
+docker exec traefik traefik --api.insecure=true
+```
+</Accordion>
+
+<Accordion title="Database Connection Issues">
+**Symptoms:** Backend service cannot connect to PostgreSQL
+
+**Solutions:**
+```bash
+# Check PostgreSQL service
+docker logs citizen-postgres
+
+# Verify database connectivity
+docker exec -it citizen-postgres psql -U citizen -d citizen
+
+# Reset database
+docker-compose down -v
+docker-compose up -d
+```
+</Accordion>
+
+<Accordion title="Memory Issues">
+**Symptoms:** Services getting killed or out of memory errors
+
+**Solutions:**
+```bash
+# Check memory usage
+free -h
+docker stats
+
+# Increase swap space
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+
+# Add resource limits to docker-compose.yml
+```
+</Accordion>
+</AccordionGroup>
+
+## Post-Installation Setup
+
+Complete these steps after successful installation.
+
+<Steps>
+<Step title="Security Hardening">
+  Implement additional security measures for production deployments.
+  
+  ```bash
+  # Update system packages
+  sudo apt update && sudo apt upgrade -y
+  
+  # Configure firewall
+  sudo ufw enable
+  sudo ufw default deny incoming
+  sudo ufw default allow outgoing
+  sudo ufw allow ssh
+  sudo ufw allow 80/tcp
+  sudo ufw allow 443/tcp
+  
+  # Set up fail2ban
+  sudo apt install fail2ban
+  sudo systemctl enable fail2ban
+  ```
+</Step>
+
+<Step title="Backup Configuration">
+  Set up automated backups for your Citizen installation.
+  
+  ```bash
+  # Create backup script
+  cat > backup-citizen.sh << 'EOF'
+  #!/bin/bash
+  DATE=$(date +%Y%m%d_%H%M%S)
+  
+  # Backup PostgreSQL database
+  docker exec citizen-postgres pg_dump -U citizen citizen > backup_${DATE}.sql
+  
+  # Backup configuration
+  tar -czf config_${DATE}.tar.gz config/ .env
+  
+  # Backup SSH keys
+  tar -czf ssh_keys_${DATE}.tar.gz ssh_keys/
+  EOF
+  
+  chmod +x backup-citizen.sh
+  
+  # Set up cron job
+  echo "0 2 * * * /path/to/backup-citizen.sh" | crontab -
+  ```
+</Step>
+
+<Step title="Monitoring Setup">
+  Configure monitoring and alerting for your Citizen deployment.
+  
+  ```bash
+  # Set up log rotation
+  sudo tee /etc/logrotate.d/citizen << EOF
+  /var/lib/docker/containers/*/*.log {
+    daily
+    rotate 7
+    compress
+    missingok
+    notifempty
+    create 0644 root root
+  }
+  EOF
+  
+  # Configure health check monitoring
+  # Add this to your monitoring system (Prometheus, Grafana, etc.)
+  ```
+</Step>
+</Steps>
+
+<Note>
+**Production Ready!** Your Citizen installation is now ready for production use. Continue with [GitHub Integration](/integrations/github) to set up automated deployments.
+</Note>

@@ -1,0 +1,897 @@
+---
+title: "Docker Hub Integration"
+description: "Connect private registries and deploy containerized applications with Docker Hub integration"
+---
+
+## Overview
+
+Citizen's Docker Hub integration enables seamless deployment of containerized applications from both public and private Docker registries. Connect your Docker Hub account to deploy pre-built images or use private repositories for secure application deployment.
+
+<Info>
+Docker Hub integration supports both Docker Hub (docker.io) and custom Docker registries for maximum flexibility.
+</Info>
+
+## Docker Hub Setup
+
+Configure Docker Hub authentication to access private repositories and enable advanced deployment features.
+
+<Steps>
+<Step title="Create Docker Hub Access Token">
+  Generate a secure access token for Citizen to authenticate with Docker Hub.
+  
+  1. Log in to [Docker Hub](https://hub.docker.com)
+  2. Navigate to **Account Settings** → **Security**
+  3. Click **"New Access Token"**
+  4. Configure the token:
+  
+  <ParamField body="Token description" type="string" required>
+  A descriptive name like "Citizen Deployment Token"
+  </ParamField>
+  
+  <ParamField body="Access permissions" type="string" required>
+  Select "Read, Write, Delete" for full repository access
+  </ParamField>
+  
+  5. Click **"Generate"** and copy the token
+  
+  <Warning>
+  Store your access token securely. You won't be able to view it again after closing the dialog.
+  </Warning>
+</Step>
+
+<Step title="Configure Citizen">
+  Add Docker Hub credentials to your Citizen installation.
+  
+  <Tabs>
+  <Tab title="Web Interface">
+    1. Log in to your Citizen dashboard
+    2. Navigate to **Settings** → **Integrations**
+    3. Click **"Configure Docker Hub"**
+    4. Enter your credentials:
+    
+    ```
+    Username: your_dockerhub_username
+    Access Token: dckr_pat_your_access_token
+    Registry URL: https://index.docker.io/v1/ (default)
+    ```
+    
+    5. Click **"Test Connection"** to verify
+    6. Click **"Save Configuration"**
+    
+    <Check>
+    Citizen will validate credentials and enable Docker Hub integration.
+    </Check>
+  </Tab>
+  
+  <Tab title="API Configuration">
+    Configure Docker Hub via API for automated setups:
+    
+    ```bash
+    curl -X POST 'https://yourdomain.com/api/v1/docker/registry' \
+      -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+      -H 'Content-Type: application/json' \
+      -d '{
+        "name": "docker-hub",
+        "url": "https://index.docker.io/v1/",
+        "username": "your_dockerhub_username",
+        "token": "dckr_pat_your_access_token",
+        "default": true
+      }'
+    ```
+    
+    <ResponseExample>
+    ```json Success Response
+    {
+      "success": true,
+      "message": "Docker registry configured successfully",
+      "data": {
+        "id": "docker-hub",
+        "name": "docker-hub",
+        "url": "https://index.docker.io/v1/",
+        "username": "your_dockerhub_username",
+        "verified": true,
+        "default": true
+      }
+    }
+    ```
+    </ResponseExample>
+  </Tab>
+  
+  <Tab title="Environment Variables">
+    Configure via environment variables for container deployments:
+    
+    ```bash
+    # Add to your .env file
+    DOCKER_REGISTRY_URL=https://index.docker.io/v1/
+    DOCKER_USERNAME=your_dockerhub_username
+    DOCKER_TOKEN=dckr_pat_your_access_token
+    
+    # Restart Citizen services
+    docker-compose restart
+    ```
+  </Tab>
+  </Tabs>
+</Step>
+
+<Step title="Verify Integration">
+  Test Docker Hub connectivity and private repository access.
+  
+  ```bash
+  # Test registry connection
+  curl -X GET 'https://yourdomain.com/api/v1/docker/registries' \
+    -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+  
+  # List accessible repositories
+  curl -X GET 'https://yourdomain.com/api/v1/docker/repositories' \
+    -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+  ```
+  
+  <Check>
+  You should see your private repositories listed in the response.
+  </Check>
+</Step>
+</Steps>
+
+## Deploy from Docker Hub
+
+Deploy applications directly from Docker Hub images with flexible configuration options.
+
+### Public Image Deployment
+
+<Steps>
+<Step title="Create Application">
+  Create a new application with a public Docker image.
+  
+  <RequestExample>
+  ```bash Deploy Public Image
+  curl -X POST 'https://yourdomain.com/api/v1/apps' \
+    -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+    -H 'Content-Type: application/json' \
+    -d '{
+      "name": "nginx-app",
+      "deployment": {
+        "type": "docker",
+        "image": "nginx:alpine",
+        "port": 80,
+        "environment": {
+          "NGINX_HOST": "localhost",
+          "NGINX_PORT": "80"
+        }
+      }
+    }'
+  ```
+  </RequestExample>
+  
+  <ResponseExample>
+  ```json Success Response
+  {
+    "success": true,
+    "data": {
+      "id": "nginx-app",
+      "name": "nginx-app",
+      "status": "deploying",
+      "url": "https://nginx-app.yourdomain.com",
+      "deployment": {
+        "type": "docker",
+        "image": "nginx:alpine",
+        "tag": "latest",
+        "port": 80
+      }
+    }
+  }
+  ```
+  </ResponseExample>
+</Step>
+
+<Step title="Configure Port Mapping">
+  Specify port configuration for your containerized application.
+  
+  <ParamField body="port" type="integer" required>
+  Container port that your application listens on
+  </ParamField>
+  
+  <ParamField body="expose" type="array">
+  Additional ports to expose (e.g., [3000, 8080])
+  </ParamField>
+  
+  <ParamField body="protocol" type="string" default="tcp">
+  Protocol type: "tcp", "udp", or "http"
+  </ParamField>
+  
+  Example configuration:
+  ```json
+  {
+    "port": 3000,
+    "expose": [8080, 9090],
+    "protocol": "http"
+  }
+  ```
+</Step>
+
+<Step title="Monitor Deployment">
+  Track deployment progress and verify application status.
+  
+  ```bash
+  # Check deployment status
+  curl -X GET 'https://yourdomain.com/api/v1/apps/nginx-app/status' \
+    -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+  
+  # View deployment logs
+  curl -X GET 'https://yourdomain.com/api/v1/apps/nginx-app/logs' \
+    -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+  ```
+  
+  <Check>
+  Application should be accessible at the generated subdomain within 2-3 minutes.
+  </Check>
+</Step>
+</Steps>
+
+### Private Image Deployment
+
+Deploy applications from private Docker Hub repositories with authenticated access.
+
+<Steps>
+<Step title="Verify Registry Access">
+  Ensure Citizen can access your private repositories.
+  
+  ```bash
+  # List private repositories
+  curl -X GET 'https://yourdomain.com/api/v1/docker/repositories?private=true' \
+    -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+  
+  # Search for specific image
+  curl -X GET 'https://yourdomain.com/api/v1/docker/search?q=username/private-app' \
+    -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+  ```
+</Step>
+
+<Step title="Deploy Private Image">
+  Create application using private Docker Hub image.
+  
+  <RequestExample>
+  ```bash Deploy Private Image
+  curl -X POST 'https://yourdomain.com/api/v1/apps' \
+    -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+    -H 'Content-Type: application/json' \
+    -d '{
+      "name": "private-app",
+      "deployment": {
+        "type": "docker",
+        "image": "username/private-app:v1.2.0",
+        "registry": "docker-hub",
+        "port": 8080,
+        "environment": {
+          "NODE_ENV": "production",
+          "API_KEY": "your-api-key"
+        },
+        "resources": {
+          "memory": "512Mi",
+          "cpu": "500m"
+        }
+      }
+    }'
+  ```
+  </RequestExample>
+  
+  <ResponseExample>
+  ```json Success Response
+  {
+    "success": true,
+    "data": {
+      "id": "private-app",
+      "name": "private-app",
+      "status": "deploying",
+      "url": "https://private-app.yourdomain.com",
+      "deployment": {
+        "type": "docker",
+        "image": "username/private-app:v1.2.0",
+        "registry": "docker-hub",
+        "port": 8080,
+        "authenticated": true
+      }
+    }
+  }
+  ```
+  </ResponseExample>
+</Step>
+
+<Step title="Configure Image Pull Policy">
+  Set image pull behavior for automatic updates.
+  
+  <ParamField body="pull_policy" type="string" default="IfNotPresent">
+  Image pull policy: "Always", "IfNotPresent", or "Never"
+  </ParamField>
+  
+  <ParamField body="auto_update" type="boolean" default="false">
+  Enable automatic updates when new image versions are available
+  </ParamField>
+  
+  <ParamField body="update_schedule" type="string">
+  Cron schedule for checking updates (e.g., "0 2 * * *" for daily at 2 AM)
+  </ParamField>
+  
+  ```json
+  {
+    "pull_policy": "Always",
+    "auto_update": true,
+    "update_schedule": "0 2 * * *"
+  }
+  ```
+</Step>
+</Steps>
+
+## Advanced Docker Configuration
+
+Configure advanced Docker deployment options for production workloads.
+
+### Multi-Stage Deployments
+
+<Tabs>
+<Tab title="Blue-Green Deployment">
+Deploy with zero-downtime using blue-green strategy:
+
+```json Blue-Green Configuration
+{
+  "deployment": {
+    "strategy": "blue-green",
+    "image": "username/app:v2.0.0",
+    "health_check": {
+      "path": "/health",
+      "timeout": 30,
+      "retries": 3
+    },
+    "rollback": {
+      "enabled": true,
+      "auto_rollback_threshold": 0.1
+    }
+  }
+}
+```
+
+**Process:**
+1. Deploy new version to "green" environment
+2. Run health checks and smoke tests
+3. Switch traffic from "blue" to "green"
+4. Keep "blue" for quick rollback if needed
+</Tab>
+
+<Tab title="Rolling Update">
+Gradual deployment with rolling updates:
+
+```json Rolling Update Configuration
+{
+  "deployment": {
+    "strategy": "rolling",
+    "image": "username/app:v2.0.0",
+    "rolling_update": {
+      "max_unavailable": "25%",
+      "max_surge": "25%",
+      "progress_deadline": 600
+    },
+    "readiness_probe": {
+      "path": "/ready",
+      "initial_delay": 10,
+      "period": 10
+    }
+  }
+}
+```
+
+**Benefits:**
+- Zero downtime deployments
+- Gradual traffic shift
+- Automatic rollback on failure
+</Tab>
+
+<Tab title="Canary Deployment">
+Test new versions with limited traffic:
+
+```json Canary Configuration
+{
+  "deployment": {
+    "strategy": "canary",
+    "image": "username/app:v2.0.0",
+    "canary": {
+      "steps": [
+        {"traffic": 10, "duration": "5m"},
+        {"traffic": 25, "duration": "10m"},
+        {"traffic": 50, "duration": "10m"},
+        {"traffic": 100}
+      ],
+      "analysis": {
+        "success_rate": 0.95,
+        "response_time": "500ms"
+      }
+    }
+  }
+}
+```
+
+**Features:**
+- Progressive traffic increase
+- Automated success metrics
+- Instant rollback capability
+</Tab>
+</Tabs>
+
+### Resource Management
+
+<Steps>
+<Step title="Resource Limits">
+  Configure CPU and memory limits for containers.
+  
+  ```json
+  {
+    "resources": {
+      "limits": {
+        "memory": "1Gi",
+        "cpu": "1000m"
+      },
+      "requests": {
+        "memory": "512Mi",
+        "cpu": "500m"
+      }
+    }
+  }
+  ```
+  
+  <ParamField body="memory" type="string">
+  Memory limit in bytes, Ki, Mi, or Gi (e.g., "512Mi", "1Gi")
+  </ParamField>
+  
+  <ParamField body="cpu" type="string">
+  CPU limit in millicores (e.g., "500m" = 0.5 CPU cores)
+  </ParamField>
+</Step>
+
+<Step title="Health Checks">
+  Configure application health monitoring.
+  
+  ```json
+  {
+    "health_check": {
+      "path": "/health",
+      "port": 8080,
+      "timeout": 30,
+      "interval": 10,
+      "retries": 3,
+      "start_period": 60
+    }
+  }
+  ```
+  
+  <ParamField body="path" type="string" required>
+  HTTP endpoint for health checks
+  </ParamField>
+  
+  <ParamField body="timeout" type="integer" default="30">
+  Timeout in seconds for health check requests
+  </ParamField>
+  
+  <ParamField body="retries" type="integer" default="3">
+  Number of consecutive failures before marking unhealthy
+  </ParamField>
+</Step>
+
+<Step title="Scaling Configuration">
+  Set up automatic scaling based on resource usage.
+  
+  ```json
+  {
+    "scaling": {
+      "min_replicas": 1,
+      "max_replicas": 10,
+      "target_cpu": 70,
+      "target_memory": 80,
+      "scale_up_stabilization": 300,
+      "scale_down_stabilization": 300
+    }
+  }
+  ```
+  
+  <ParamField body="min_replicas" type="integer" default="1">
+  Minimum number of application instances
+  </ParamField>
+  
+  <ParamField body="max_replicas" type="integer" default="5">
+  Maximum number of application instances
+  </ParamField>
+  
+  <ParamField body="target_cpu" type="integer" default="70">
+  Target CPU utilization percentage for scaling
+  </ParamField>
+</Step>
+</Steps>
+
+## Custom Docker Registries
+
+Connect to private Docker registries beyond Docker Hub for enterprise deployments.
+
+### Registry Configuration
+
+<AccordionGroup>
+<Accordion title="AWS Elastic Container Registry (ECR)">
+Configure AWS ECR for private container storage:
+
+```bash
+# Configure AWS ECR registry
+curl -X POST 'https://yourdomain.com/api/v1/docker/registry' \
+  -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "aws-ecr",
+    "url": "123456789012.dkr.ecr.us-west-2.amazonaws.com",
+    "username": "AWS",
+    "token": "eyJwYXlsb2FkIjoiM...",
+    "provider": "ecr",
+    "region": "us-west-2"
+  }'
+```
+
+**ECR Authentication:**
+- Use AWS CLI to generate authentication tokens
+- Tokens expire every 12 hours
+- Automated token refresh via AWS IAM roles
+</Accordion>
+
+<Accordion title="Google Container Registry (GCR)">
+Configure Google Container Registry:
+
+```bash
+# Configure GCR registry
+curl -X POST 'https://yourdomain.com/api/v1/docker/registry' \
+  -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "google-gcr",
+    "url": "gcr.io",
+    "username": "_json_key",
+    "token": "ewogICJ0eXBlIjogInNlcnZpY2VfYWNjb3VudCIsCg...",
+    "provider": "gcr",
+    "project_id": "my-project-id"
+  }'
+```
+
+**GCR Authentication:**
+- Use service account JSON key
+- Base64 encode the entire JSON key as token
+- Grant Container Registry access to service account
+</Accordion>
+
+<Accordion title="Azure Container Registry (ACR)">
+Configure Azure Container Registry:
+
+```bash
+# Configure ACR registry
+curl -X POST 'https://yourdomain.com/api/v1/docker/registry' \
+  -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "azure-acr",
+    "url": "myregistry.azurecr.io",
+    "username": "myregistry",
+    "token": "password_or_token",
+    "provider": "acr"
+  }'
+```
+
+**ACR Authentication:**
+- Use admin username/password
+- Or use service principal credentials
+- Or use managed identity for Azure VMs
+</Accordion>
+
+<Accordion title="Private Harbor Registry">
+Configure self-hosted Harbor registry:
+
+```bash
+# Configure Harbor registry
+curl -X POST 'https://yourdomain.com/api/v1/docker/registry' \
+  -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "harbor-registry",
+    "url": "harbor.company.com",
+    "username": "harbor_user",
+    "token": "harbor_password",
+    "provider": "harbor",
+    "ssl_verify": true
+  }'
+```
+
+**Harbor Features:**
+- Self-hosted private registry
+- Vulnerability scanning
+- RBAC and project management
+- Helm chart repository
+</Accordion>
+</AccordionGroup>
+
+### Multi-Registry Support
+
+Deploy applications using images from multiple registries:
+
+```json Multi-Registry Deployment
+{
+  "name": "multi-registry-app",
+  "deployment": {
+    "type": "docker",
+    "services": [
+      {
+        "name": "frontend",
+        "image": "mycompany/frontend:v1.0.0",
+        "registry": "harbor-registry",
+        "port": 3000
+      },
+      {
+        "name": "backend",
+        "image": "123456789012.dkr.ecr.us-west-2.amazonaws.com/backend:latest",
+        "registry": "aws-ecr",
+        "port": 8080
+      },
+      {
+        "name": "cache",
+        "image": "redis:alpine",
+        "registry": "docker-hub",
+        "port": 6379
+      }
+    ]
+  }
+}
+```
+
+## Image Management
+
+Manage Docker images and automate deployment workflows.
+
+### Image Scanning and Security
+
+<Tabs>
+<Tab title="Vulnerability Scanning">
+Integrate security scanning into deployment pipeline:
+
+```json Security Configuration
+{
+  "security": {
+    "scan_images": true,
+    "vulnerability_threshold": "HIGH",
+    "scan_providers": ["trivy", "clair"],
+    "fail_on_critical": true,
+    "whitelist_cves": [
+      "CVE-2023-12345"
+    ]
+  }
+}
+```
+
+**Scanning Features:**
+- Pre-deployment vulnerability scanning
+- Critical vulnerability blocking
+- CVE whitelisting for known safe issues
+- Integration with multiple scan engines
+</Tab>
+
+<Tab title="Image Signing">
+Verify image authenticity with digital signatures:
+
+```json Signing Configuration
+{
+  "image_signing": {
+    "enabled": true,
+    "provider": "cosign",
+    "public_key": "-----BEGIN PUBLIC KEY-----\n...",
+    "verify_signatures": true,
+    "require_signed": true
+  }
+}
+```
+
+**Benefits:**
+- Cryptographic verification of image integrity
+- Protection against supply chain attacks
+- Compliance with security standards
+- Automated signature verification
+</Tab>
+
+<Tab title="Image Policies">
+Enforce image usage policies:
+
+```json Policy Configuration
+{
+  "image_policies": {
+    "allowed_registries": [
+      "docker.io",
+      "gcr.io/my-project",
+      "mycompany.azurecr.io"
+    ],
+    "blocked_tags": ["latest", "dev"],
+    "require_digest": true,
+    "max_image_age": "30d"
+  }
+}
+```
+
+**Policy Types:**
+- Registry whitelist/blacklist
+- Tag restrictions
+- Image age limits
+- Digest requirements for immutability
+</Tab>
+</Tabs>
+
+### Automated Updates
+
+<Steps>
+<Step title="Configure Update Policy">
+  Set up automated image updates based on your requirements.
+  
+  ```json
+  {
+    "auto_update": {
+      "enabled": true,
+      "strategy": "semantic_versioning",
+      "channels": ["patch", "minor"],
+      "schedule": "0 2 * * *",
+      "approval_required": false
+    }
+  }
+  ```
+  
+  <ParamField body="strategy" type="string">
+  Update strategy: "latest", "semantic_versioning", or "manual"
+  </ParamField>
+  
+  <ParamField body="channels" type="array">
+  Allowed update channels: ["patch"], ["minor"], ["major"]
+  </ParamField>
+</Step>
+
+<Step title="Monitor Updates">
+  Track automated updates and rollback if necessary.
+  
+  ```bash
+  # List pending updates
+  curl -X GET 'https://yourdomain.com/api/v1/apps/myapp/updates' \
+    -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+  
+  # Approve pending update
+  curl -X POST 'https://yourdomain.com/api/v1/apps/myapp/updates/123/approve' \
+    -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+  ```
+</Step>
+
+<Step title="Rollback Strategy">
+  Configure automatic rollback on update failures.
+  
+  ```json
+  {
+    "rollback": {
+      "enabled": true,
+      "auto_rollback": true,
+      "success_threshold": 0.95,
+      "timeout": 600,
+      "keep_versions": 5
+    }
+  }
+  ```
+</Step>
+</Steps>
+
+## Troubleshooting
+
+Common Docker integration issues and solutions.
+
+<AccordionGroup>
+<Accordion title="Authentication Failures">
+**Symptoms:**
+- "Authentication failed" when pulling private images
+- "Registry not found" errors
+- "Invalid credentials" messages
+
+**Solutions:**
+```bash
+# Test registry connection
+curl -X POST 'https://yourdomain.com/api/v1/docker/test-connection' \
+  -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "registry": "docker-hub",
+    "image": "username/private-repo:latest"
+  }'
+
+# Verify credentials manually
+docker login -u USERNAME -p ACCESS_TOKEN
+
+# Check token permissions
+curl -X GET 'https://hub.docker.com/v2/user/' \
+  -H 'Authorization: JWT ACCESS_TOKEN'
+
+# Update credentials in Citizen
+curl -X PUT 'https://yourdomain.com/api/v1/docker/registry/docker-hub' \
+  -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "username": "NEW_USERNAME",
+    "token": "NEW_ACCESS_TOKEN"
+  }'
+```
+</Accordion>
+
+<Accordion title="Image Pull Failures">
+**Symptoms:**
+- "Image not found" errors
+- "Pull timeout" messages
+- Slow image pulling
+
+**Solutions:**
+```bash
+# Check image exists in registry
+curl -X GET 'https://yourdomain.com/api/v1/docker/images/username/app/tags' \
+  -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+
+# Verify image with digest
+docker pull username/app@sha256:abcdef...
+
+# Check network connectivity
+curl -I https://index.docker.io/v2/
+
+# Monitor pull progress
+curl -X GET 'https://yourdomain.com/api/v1/apps/myapp/deployments/latest/logs' \
+  -H 'Authorization: Bearer YOUR_JWT_TOKEN' | grep -i pull
+
+# Configure pull timeout
+curl -X PUT 'https://yourdomain.com/api/v1/apps/myapp/config' \
+  -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "deployment": {
+      "pull_timeout": 1800,
+      "pull_policy": "Always"
+    }
+  }'
+```
+</Accordion>
+
+<Accordion title="Container Runtime Issues">
+**Symptoms:**
+- Containers exiting immediately
+- "CrashLoopBackOff" status
+- Port binding failures
+
+**Solutions:**
+```bash
+# Check container logs
+curl -X GET 'https://yourdomain.com/api/v1/apps/myapp/logs?tail=100' \
+  -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+
+# Verify image runs locally
+docker run --rm -it username/app:latest
+
+# Check port configuration
+curl -X GET 'https://yourdomain.com/api/v1/apps/myapp/config' \
+  -H 'Authorization: Bearer YOUR_JWT_TOKEN'
+
+# Update port configuration
+curl -X PUT 'https://yourdomain.com/api/v1/apps/myapp/config' \
+  -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "deployment": {
+      "port": 8080,
+      "health_check": {
+        "path": "/health",
+        "port": 8080
+      }
+    }
+  }'
+
+# Check resource limits
+docker stats
+```
+</Accordion>
+</AccordionGroup>
+
+<Note>
+**Production Ready**: Docker Hub integration is now configured for secure, automated deployments. Continue with [Application Deployment Guide](/guides/deploy-app) to explore advanced deployment strategies and monitoring capabilities.
+</Note>
