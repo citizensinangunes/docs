@@ -33,6 +33,12 @@
               "integrations/github",
               "integrations/docker"
             ]
+          },
+          {
+            "group": "Deployment Guides",
+            "pages": [
+              "guides/deploy-app"
+            ]
           }
         ]
       },

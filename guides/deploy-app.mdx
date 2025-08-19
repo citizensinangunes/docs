@@ -1,0 +1,1183 @@
+---
+title: "Application Deployment Guide"
+description: "Complete guide for deploying applications to Citizen with Docker, Buildpacks, and project.toml configuration"
+---
+
+## Overview
+
+Citizen makes application deployment simple through multiple deployment methods that suit different project types and requirements. Whether you're deploying a Node.js app, Python API, or containerized application, this guide covers everything you need to know.
+
+<CardGroup cols={3}>
+<Card title="Buildpack Deploy" icon="magic-wand">
+  Automatic language detection and deployment - the easiest method
+</Card>
+
+<Card title="Dockerfile Deploy" icon="docker">
+  Full control with custom Docker images for production workloads
+</Card>
+
+<Card title="project.toml Config" icon="gear">
+  Dokku-specific configuration for advanced deployment settings
+</Card>
+</CardGroup>
+
+## Deployment Methods
+
+Choose the deployment method that best fits your application architecture and requirements.
+
+<Tabs>
+<Tab title="🪄 Buildpack (Recommended)">
+**Best for:** Most web applications and APIs
+
+Buildpacks automatically detect your application's language and handle the build process. This is the simplest deployment method and works great for:
+
+- Node.js applications
+- Python web apps
+- Ruby on Rails
+- Go applications  
+- PHP projects
+
+**How it works:**
+1. Citizen detects your language from project files
+2. Uses Heroku buildpacks to build your application
+3. Automatically configures runtime environment
+4. Deploys to your subdomain
+
+**Requirements:**
+- Language-specific files in project root (`package.json`, `requirements.txt`, etc.)
+- Application listens on the `PORT` environment variable
+</Tab>
+
+<Tab title="🐳 Dockerfile">
+**Best for:** Complex applications, microservices, custom environments
+
+Dockerfile deployments give you complete control over the container environment. Use this when you need:
+
+- Custom base images
+- Multi-stage builds
+- Specific system dependencies
+- Production optimization
+- Security hardening
+
+**How it works:**
+1. Citizen uses your Dockerfile to build a container image
+2. Pushes image to your Dokku server
+3. Runs container with specified configuration
+4. Handles port mapping and health checks
+
+**Requirements:**
+- `Dockerfile` in project root
+- `EXPOSE` directive specifying port
+- Application runs as non-root user (recommended)
+</Tab>
+
+<Tab title="⚙️ project.toml">
+**Best for:** Advanced configuration and Dokku-specific settings
+
+The `project.toml` file provides fine-grained control over deployment settings. Use this to specify:
+
+- Custom port mappings
+- Health check endpoints
+- Build-time environment variables
+- Domain configuration
+- Deployment metadata
+
+**How it works:**
+1. Citizen reads `project.toml` configuration
+2. Applies settings during deployment
+3. Can be combined with Buildpack or Dockerfile
+4. Overrides default Dokku behavior
+
+**Requirements:**
+- `project.toml` file in project root
+- Valid TOML syntax
+- Compatible with chosen deployment method
+</Tab>
+</Tabs>
+
+## Quick Start Guide
+
+Get your application deployed in under 5 minutes with our step-by-step process.
+
+<Steps>
+<Step title="Connect Your Repository">
+  Link your GitHub repository to Citizen for automated deployments.
+  
+  1. Navigate to **Applications** → **Create New App**
+  2. Select **"Deploy from GitHub"**
+  3. Choose your repository and branch
+  4. Click **"Connect Repository"**
+  
+  <Check>
+  Your repository is now connected and ready for deployment.
+  </Check>
+</Step>
+
+<Step title="Configure Deployment Method">
+  Choose how Citizen should deploy your application.
+  
+  <Tabs>
+  <Tab title="Auto-detect (Buildpack)">
+    Let Citizen automatically detect your application type:
+    
+    - **Node.js**: Detected from `package.json`
+    - **Python**: Detected from `requirements.txt` or `setup.py`
+    - **Go**: Detected from `go.mod`
+    - **Ruby**: Detected from `Gemfile`
+    - **PHP**: Detected from `composer.json`
+    
+    No additional configuration needed!
+  </Tab>
+  
+  <Tab title="Custom Dockerfile">
+    If you have a `Dockerfile` in your repository root, Citizen will automatically use it.
+    
+    <Warning>
+    Ensure your Dockerfile includes an `EXPOSE` directive for your application port.
+    </Warning>
+  </Tab>
+  
+  <Tab title="Custom Configuration">
+    Create a `project.toml` file for advanced settings:
+    
+    ```toml
+    [project]
+    id = "my-app"
+    name = "My Application"
+    
+    [dokku]
+    port = 3000
+    
+    [deploy]
+    health_check = "/health"
+    ```
+  </Tab>
+  </Tabs>
+</Step>
+
+<Step title="Set Environment Variables">
+  Configure any required environment variables for your application.
+  
+  In the Citizen dashboard:
+  1. Go to your application settings
+  2. Navigate to **"Environment Variables"**
+  3. Add variables like `DATABASE_URL`, `API_KEY`, etc.
+  4. Click **"Save Changes"**
+  
+  <Info>
+  Environment variables are encrypted and securely stored.
+  </Info>
+</Step>
+
+<Step title="Deploy Your Application">
+  Trigger your first deployment and monitor the process.
+  
+  1. Click **"Deploy Now"** in your application dashboard
+  2. Watch real-time build logs
+  3. Wait for deployment completion (usually 2-5 minutes)
+  4. Access your app at `https://your-app.yourdomain.com`
+  
+  <Check>
+  Your application is now live and accessible!
+  </Check>
+</Step>
+</Steps>
+
+## Deployment Configuration
+
+### Understanding project.toml
+
+The `project.toml` file gives you precise control over how your application is deployed and configured.
+
+<AccordionGroup>
+<Accordion title="Basic Configuration">
+```toml
+[project]
+id = "my-app"                    # App identifier (required)
+name = "My Application"          # Display name
+version = "1.0.0"               # Version string
+
+[dokku]
+port = 3000                     # Port your app listens on
+domain = "myapp.example.com"    # Custom domain (optional)
+
+[deploy]
+health_check = "/health"        # Health check endpoint
+```
+
+**Field Explanations:**
+- `id`: Unique identifier used for the Dokku app name
+- `port`: The port your application server listens on
+- `health_check`: Endpoint that returns 200 OK when app is healthy
+</Accordion>
+
+<Accordion title="Advanced Configuration">
+```toml
+[project]
+id = "advanced-app"
+name = "Advanced Application"
+version = "2.1.0"
+
+[dokku]
+port = 8080
+domain = "api.example.com"
+
+[deploy]
+port = 8080                     # Can override dokku.port
+health_check = "/api/health"
+timeout = 300                   # Deploy timeout in seconds
+
+[build.env]
+NODE_ENV = "production"         # Build-time environment variables
+NPM_CONFIG_PRODUCTION = "false"
+BUILD_FLAGS = "--optimize"
+
+[metadata.dokku]
+port = 8080                     # Highest priority port setting
+
+[metadata.deploy]
+port = 8080                     # Alternative port setting
+ssl = true                      # Enable SSL
+```
+
+**Port Priority (highest to lowest):**
+1. `metadata.dokku.port`
+2. `metadata.deploy.port`  
+3. `dokku.port`
+4. `deploy.port`
+5. `build.env.PORT`
+</Accordion>
+
+<Accordion title="Multiple Services">
+```toml
+[project]
+id = "multi-service-app"
+name = "Multi-Service Application"
+
+[dokku]
+port = 3000
+
+# Define multiple services
+[services.web]
+port = 3000
+health_check = "/health"
+
+[services.api]
+port = 8080
+health_check = "/api/health"
+
+[services.worker]
+port = 9000
+type = "worker"               # Background worker, no port mapping
+```
+
+Use this for applications that run multiple processes or services.
+</Accordion>
+</AccordionGroup>
+
+### Port Configuration
+
+Understanding port configuration is crucial for successful deployments.
+
+<Steps>
+<Step title="Application Port">
+  Your application must listen on a specific port. This is the port your server code binds to.
+  
+  <CodeGroup>
+  ```javascript Node.js/Express
+  const express = require('express');
+  const app = express();
+  
+  // Listen on PORT environment variable or fallback
+  const port = process.env.PORT || 3000;
+  
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
+  ```
+  
+  ```python Python/Flask
+  from flask import Flask
+  import os
+  
+  app = Flask(__name__)
+  
+  if __name__ == '__main__':
+      # Use PORT environment variable or fallback
+      port = int(os.environ.get('PORT', 5000))
+      app.run(host='0.0.0.0', port=port)
+  ```
+  
+  ```go Go
+  package main
+  
+  import (
+      "fmt"
+      "net/http"
+      "os"
+  )
+  
+  func main() {
+      port := os.Getenv("PORT")
+      if port == "" {
+          port = "8080"
+      }
+      
+      http.HandleFunc("/", handler)
+      fmt.Printf("Server starting on port %s\n", port)
+      http.ListenAndServe(":"+port, nil)
+  }
+  ```
+  </CodeGroup>
+</Step>
+
+<Step title="Configure in project.toml">
+  Tell Citizen which port your application uses.
+  
+  ```toml
+  [dokku]
+  port = 3000  # Must match your application's listening port
+  ```
+  
+  <Warning>
+  The port in `project.toml` must match the port your application actually listens on.
+  </Warning>
+</Step>
+
+<Step title="Port via Environment Variable">
+  Alternatively, set the port using environment variables.
+  
+  In Citizen dashboard → Environment Variables:
+  ```
+  PORT = 3000
+  ```
+  
+  <Info>
+  Most frameworks automatically use the `PORT` environment variable when available.
+  </Info>
+</Step>
+</Steps>
+
+## Dockerfile Best Practices
+
+When using Dockerfile deployment, follow these production-ready practices.
+
+### Essential Dockerfile Structure
+
+<CodeGroup>
+```dockerfile Node.js Multi-stage
+# Build stage
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files first for better caching
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy source code
+COPY . .
+
+# Build application (if needed)
+RUN npm run build
+
+# Production stage
+FROM node:18-alpine AS production
+
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+# Copy from build stage
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nodejs:nodejs /app .
+
+# Switch to non-root user
+USER nodejs
+
+# CRITICAL: Expose the port your app listens on
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+# Start application
+CMD ["node", "server.js"]
+```
+
+```dockerfile Python/Django
+FROM python:3.11-slim AS base
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash app && \
+    chown -R app:app /app
+USER app
+
+# CRITICAL: Expose the port your app listens on
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8000/health/ || exit 1
+
+# Start application
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "myproject.wsgi"]
+```
+
+```dockerfile Go Multi-stage
+# Build stage
+FROM golang:1.21-alpine AS builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache git ca-certificates
+
+# Copy go modules first for better caching
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build binary
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags='-w -s -extldflags "-static"' \
+    -o main .
+
+# Production stage
+FROM scratch
+
+# Copy certificates for HTTPS requests
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+# Copy binary
+COPY --from=builder /app/main /main
+
+# CRITICAL: Expose the port your app listens on
+EXPOSE 8080
+
+# Start application
+ENTRYPOINT ["/main"]
+```
+</CodeGroup>
+
+### Critical Dockerfile Requirements
+
+<Warning>
+**EXPOSE Directive Required**: Dokku needs the `EXPOSE` directive to know which port to map. Without it, Dokku defaults to port 5000, which may cause connection issues.
+</Warning>
+
+<Steps>
+<Step title="Include EXPOSE Directive">
+  Always specify which port your application listens on.
+  
+  ```dockerfile
+  # REQUIRED: Tell Dokku which port to map
+  EXPOSE 3000
+  ```
+  
+  If your app uses multiple ports:
+  ```dockerfile
+  EXPOSE 3000 8080 9000
+  ```
+</Step>
+
+<Step title="Use Multi-stage Builds">
+  Reduce image size and improve security with multi-stage builds.
+  
+  ```dockerfile
+  # Build stage - includes dev dependencies
+  FROM node:18-alpine AS builder
+  # ... build process
+  
+  # Production stage - only runtime dependencies
+  FROM node:18-alpine AS production
+  COPY --from=builder /app .
+  ```
+</Step>
+
+<Step title="Run as Non-root User">
+  Improve security by running as a non-privileged user.
+  
+  ```dockerfile
+  # Create user
+  RUN adduser -D -s /bin/sh appuser
+  
+  # Switch to user
+  USER appuser
+  ```
+</Step>
+
+<Step title="Add Health Checks">
+  Include health checks for better monitoring.
+  
+  ```dockerfile
+  HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
+    CMD curl -f http://localhost:3000/health || exit 1
+  ```
+</Step>
+</Steps>
+
+## Environment Variables
+
+Manage application configuration securely through environment variables.
+
+### Setting Environment Variables
+
+<Tabs>
+<Tab title="Via Citizen Dashboard">
+1. Go to your application in Citizen
+2. Navigate to **Settings** → **Environment Variables**
+3. Click **"Add Variable"**
+4. Enter key and value
+5. Click **"Save"**
+
+**Common Variables:**
+- `DATABASE_URL` - Database connection string
+- `REDIS_URL` - Redis connection string  
+- `API_KEY` - Third-party API keys
+- `JWT_SECRET` - JWT signing secret
+- `NODE_ENV` - Environment (production/development)
+</Tab>
+
+<Tab title="Via project.toml">
+Set build-time environment variables in your configuration:
+
+```toml
+[build.env]
+NODE_ENV = "production"
+NPM_CONFIG_PRODUCTION = "false"
+PYTHON_VERSION = "3.11"
+GO_VERSION = "1.21"
+```
+
+<Info>
+These variables are available during the build process but not at runtime.
+</Info>
+</Tab>
+
+<Tab title="Via .env Files">
+For local development, use `.env` files:
+
+```bash
+# .env.example (commit this)
+DATABASE_URL=postgres://localhost:5432/myapp
+REDIS_URL=redis://localhost:6379
+API_KEY=your_api_key_here
+
+# .env (don't commit this)
+DATABASE_URL=postgres://prod-server:5432/myapp
+REDIS_URL=redis://prod-server:6379
+API_KEY=prod_api_key_here
+```
+
+<Warning>
+Never commit actual `.env` files with real credentials to version control.
+</Warning>
+</Tab>
+</Tabs>
+
+### Environment Variable Best Practices
+
+<Steps>
+<Step title="Use Descriptive Names">
+  Make environment variable names clear and consistent.
+  
+  ```bash
+  # Good
+  DATABASE_URL=postgres://...
+  REDIS_CACHE_URL=redis://...
+  STRIPE_API_KEY=sk_live_...
+  
+  # Bad  
+  DB=postgres://...
+  CACHE=redis://...
+  KEY=sk_live_...
+  ```
+</Step>
+
+<Step title="Provide Defaults">
+  Always provide sensible defaults in your application code.
+  
+  ```javascript
+  const port = process.env.PORT || 3000;
+  const nodeEnv = process.env.NODE_ENV || 'development';
+  const dbUrl = process.env.DATABASE_URL || 'sqlite://./dev.db';
+  ```
+</Step>
+
+<Step title="Validate Required Variables">
+  Check for required environment variables at startup.
+  
+  ```javascript
+  function validateEnv() {
+    const required = ['DATABASE_URL', 'JWT_SECRET'];
+    
+    for (const env of required) {
+      if (!process.env[env]) {
+        console.error(`Missing required environment variable: ${env}`);
+        process.exit(1);
+      }
+    }
+  }
+  
+  validateEnv();
+  ```
+</Step>
+</Steps>
+
+## Real-World Examples
+
+Learn from complete, production-ready deployment configurations.
+
+### Next.js Application
+
+<Tabs>
+<Tab title="project.toml">
+```toml
+[project]
+id = "nextjs-blog"
+name = "Next.js Blog"
+version = "1.0.0"
+
+[dokku]
+port = 3000
+
+[deploy]
+health_check = "/api/health"
+
+[build.env]
+NODE_ENV = "production"
+NEXT_TELEMETRY_DISABLED = "1"
+```
+</Tab>
+
+<Tab title="Dockerfile">
+```dockerfile
+# Install dependencies only when needed
+FROM node:18-alpine AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Rebuild the source code only when needed
+FROM node:18-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+# Build application
+RUN npm run build
+
+# Production image
+FROM node:18-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV production
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+
+# REQUIRED: Expose port
+EXPOSE 3000
+
+ENV PORT 3000
+
+CMD ["node", "server.js"]
+```
+</Tab>
+
+<Tab title="Health Check">
+Create `/pages/api/health.js`:
+
+```javascript
+export default function handler(req, res) {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+}
+```
+</Tab>
+</Tabs>
+
+### Express.js API
+
+<Tabs>
+<Tab title="project.toml">
+```toml
+[project]
+id = "express-api"
+name = "Express API"
+version = "2.1.0"
+
+[dokku]
+port = 8080
+
+[deploy]
+health_check = "/api/v1/health"
+timeout = 120
+
+[build.env]
+NODE_ENV = "production"
+NPM_CONFIG_PRODUCTION = "false"
+```
+</Tab>
+
+<Tab title="server.js">
+```javascript
+const express = require('express');
+const helmet = require('helmet');
+const cors = require('cors');
+
+const app = express();
+const port = process.env.PORT || 8080;
+
+// Security middleware
+app.use(helmet());
+app.use(cors());
+app.use(express.json());
+
+// Health check endpoint
+app.get('/api/v1/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// API routes
+app.use('/api/v1', require('./routes'));
+
+// Start server
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Server running on port ${port}`);
+});
+```
+</Tab>
+
+<Tab title="package.json">
+```json
+{
+  "name": "express-api",
+  "version": "2.1.0",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "express": "^4.18.0",
+    "helmet": "^6.0.0",
+    "cors": "^2.8.5"
+  }
+}
+```
+</Tab>
+</Tabs>
+
+### Python Django Application
+
+<Tabs>
+<Tab title="project.toml">
+```toml
+[project]
+id = "django-app"
+name = "Django Application"
+version = "1.0.0"
+
+[dokku]
+port = 8000
+
+[deploy]
+health_check = "/health/"
+
+[build.env]
+DJANGO_SETTINGS_MODULE = "myproject.settings.production"
+DISABLE_COLLECTSTATIC = "0"
+```
+</Tab>
+
+<Tab title="Procfile">
+```
+web: gunicorn myproject.wsgi:application --bind 0.0.0.0:$PORT
+release: python manage.py migrate
+```
+</Tab>
+
+<Tab title="requirements.txt">
+```txt
+Django==4.2.0
+gunicorn==20.1.0
+psycopg2-binary==2.9.0
+whitenoise==6.4.0
+django-cors-headers==4.0.0
+```
+</Tab>
+
+<Tab title="settings/production.py">
+```python
+from .base import *
+import os
+
+# Security
+DEBUG = False
+ALLOWED_HOSTS = ['.herokuapp.com', '.yourdomain.com']
+
+# Database
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DATABASE_URL'),
+    }
+}
+
+# Static files
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Health check
+def health_check(request):
+    return JsonResponse({'status': 'healthy'})
+```
+</Tab>
+</Tabs>
+
+## Troubleshooting
+
+Common deployment issues and their solutions.
+
+<AccordionGroup>
+<Accordion title="🔧 Port Connection Issues">
+**Symptoms:**
+- "Application failed to start"
+- "Port not accessible"
+- "Health check failing"
+
+**Solutions:**
+
+<Steps>
+<Step title="Verify Port Configuration">
+Check that your application listens on the correct port:
+
+```bash
+# Check project.toml
+[dokku]
+port = 3000  # Must match your app
+
+# Check environment variables
+PORT=3000
+
+# Check your application code
+const port = process.env.PORT || 3000;
+app.listen(port, '0.0.0.0');  // Must bind to 0.0.0.0
+```
+</Step>
+
+<Step title="Check Dockerfile EXPOSE">
+Ensure your Dockerfile exposes the correct port:
+
+```dockerfile
+# REQUIRED: Must match your application port
+EXPOSE 3000
+```
+</Step>
+
+<Step title="Verify Health Check">
+Test your health check endpoint locally:
+
+```bash
+curl http://localhost:3000/health
+# Should return 200 OK
+```
+</Step>
+</Steps>
+</Accordion>
+
+<Accordion title="🏗️ Build Failures">
+**Symptoms:**
+- "Build failed"
+- "Dependencies not found"
+- "Build timeout"
+
+**Solutions:**
+
+<Steps>
+<Step title="Check Build Logs">
+Review detailed build logs in the Citizen dashboard:
+1. Go to your application
+2. Click on **"Deployments"** 
+3. View the failed deployment logs
+4. Look for specific error messages
+</Step>
+
+<Step title="Verify Dependencies">
+Ensure all dependency files are present:
+
+```bash
+# Node.js
+package.json ✓
+package-lock.json ✓ (recommended)
+
+# Python  
+requirements.txt ✓
+setup.py ✓ (if applicable)
+
+# Go
+go.mod ✓
+go.sum ✓
+```
+</Step>
+
+<Step title="Fix Common Issues">
+**Node.js:**
+```json
+{
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}
+```
+
+**Python:**
+```txt
+# Pin major versions
+Django>=4.0,<5.0
+gunicorn>=20.0,<21.0
+```
+
+**Go:**
+```go
+// Ensure Go version compatibility
+go 1.21
+
+require (
+    github.com/gin-gonic/gin v1.9.1
+)
+```
+</Step>
+</Steps>
+</Accordion>
+
+<Accordion title="🚀 Deployment Failures">
+**Symptoms:**
+- "Container won't start"
+- "Application crashes on startup"
+- "Environment variables not working"
+
+**Solutions:**
+
+<Steps>
+<Step title="Check Application Logs">
+View runtime logs to identify the issue:
+
+```bash
+# In Citizen dashboard
+Go to Apps → Your App → Logs
+
+# Look for:
+# - Missing environment variables
+# - Database connection errors
+# - Port binding issues
+# - Permission errors
+```
+</Step>
+
+<Step title="Verify Environment Variables">
+Check that all required variables are set:
+
+```javascript
+// Add validation to your app
+const requiredEnvs = ['DATABASE_URL', 'JWT_SECRET'];
+requiredEnvs.forEach(env => {
+  if (!process.env[env]) {
+    console.error(`Missing: ${env}`);
+    process.exit(1);
+  }
+});
+```
+</Step>
+
+<Step title="Test Locally">
+Reproduce the issue in your local environment:
+
+```bash
+# Set environment variables
+export PORT=3000
+export NODE_ENV=production
+export DATABASE_URL=...
+
+# Start your application
+npm start
+```
+</Step>
+</Steps>
+</Accordion>
+
+<Accordion title="🔒 Permission and Security Issues">
+**Symptoms:**
+- "Permission denied"
+- "Cannot write to filesystem"
+- "User access errors"
+
+**Solutions:**
+
+<Steps>
+<Step title="Use Non-root User in Dockerfile">
+```dockerfile
+# Create and use non-root user
+RUN adduser -D -s /bin/sh appuser
+USER appuser
+
+# Ensure correct permissions
+COPY --chown=appuser:appuser . .
+```
+</Step>
+
+<Step title="Fix File Permissions">
+```dockerfile
+# Set correct ownership
+RUN chown -R appuser:appuser /app
+
+# Set executable permissions
+RUN chmod +x /app/start.sh
+```
+</Step>
+
+<Step title="Use Read-only Filesystem">
+```dockerfile
+# Mount writable directories
+VOLUME ["/tmp", "/var/log"]
+
+# Rest of filesystem is read-only
+```
+</Step>
+</Steps>
+</Accordion>
+</AccordionGroup>
+
+## LLM Deployment Assistant
+
+Use this prompt with any AI assistant to generate customized deployment configurations for your specific application.
+
+<Note>
+**AI Prompt**: Copy and paste this prompt into ChatGPT, Claude, or any other AI assistant to get personalized deployment help for your project.
+</Note>
+
+```
+I'm deploying an application to Citizen, which is a web-based management interface for Dokku. 
+
+Citizen supports these deployment methods:
+1. Buildpack (automatic language detection)
+2. Dockerfile (custom containers) 
+3. project.toml (Dokku-specific configuration)
+
+Key Citizen features:
+- GitHub integration with automatic deployment
+- Port configuration via project.toml or environment variables
+- Environment variable management through web interface
+- Custom domain support with automatic SSL
+- Real-time build and deployment logs
+- Health check monitoring
+
+My application details:
+- Language/Framework: [ENTER YOUR LANGUAGE/FRAMEWORK]
+- Port: [ENTER YOUR PORT] 
+- Database: [ENTER DATABASE TYPE IF ANY]
+- Special requirements: [ENTER ANY SPECIAL NEEDS]
+
+Please provide:
+
+1. **Optimal deployment method** (Buildpack vs Dockerfile vs hybrid)
+
+2. **Complete project.toml** configuration with:
+   - Correct port settings (priority: metadata.dokku.port > metadata.deploy.port > dokku.port > deploy.port > build.env.PORT)
+   - Health check endpoint
+   - Build environment variables
+
+3. **Production-ready Dockerfile** (if recommended) with:
+   - Multi-stage build
+   - EXPOSE directive for the correct port
+   - Non-root user
+   - Health check
+   - Security best practices
+
+4. **Required environment variables** list with descriptions
+
+5. **Health check endpoint** implementation
+
+6. **Common issues** and troubleshooting for this technology stack
+
+7. **Post-deployment verification** steps
+
+Requirements for Dockerfile:
+- MUST include EXPOSE directive
+- Should use multi-stage build for efficiency
+- Must run as non-root user
+- Should include health check
+- Bind to 0.0.0.0, not localhost
+- Production optimization
+
+Please make it production-ready and follow current best practices for [YOUR FRAMEWORK].
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+<Card title="Custom Domains" icon="globe" href="/guides/custom-domains">
+  Configure custom domains and SSL certificates for your applications
+</Card>
+
+<Card title="Environment Variables" icon="key" href="/guides/environment-variables">
+  Advanced environment variable management and security practices
+</Card>
+
+<Card title="Monitoring" icon="chart-line" href="/monitoring">
+  Set up monitoring, logging, and alerting for your deployed applications
+</Card>
+
+<Card title="Scaling" icon="expand" href="/advanced/scaling">
+  Scale your applications horizontally and vertically based on demand
+</Card>
+</CardGroup>
+
+<Note>
+**Need Help?** If you're still having issues with deployment, check our [Troubleshooting Guide](/advanced/troubleshooting) or reach out on [GitHub Discussions](https://github.com/citizenteam/citizen/discussions).
+</Note>
